@@ -6,9 +6,10 @@ namespace Zack\PhpDsAlgo\DataStructure\LinkedList\Single;
 
 use InvalidArgumentException;
 use IteratorAggregate;
-use Zack\PhpDsAlgo\Contants\ErrorMessages;
+use Zack\PhpDsAlgo\Constants\ErrorMessages;
+use Zack\PhpDsAlgo\Contracts\ILinkedList;
 
-class SingleLinkedList implements IteratorAggregate
+class SingleLinkedList implements IteratorAggregate, ILinkedList
 {
     private ?SingleLinkedListNode $head = null;
     private int $length = 0;

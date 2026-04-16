@@ -1,7 +1,6 @@
 <?php
 
-
-namespace Zack\PhpDsAlgo\Contants;
+namespace Zack\PhpDsAlgo\Constants;
 
 class ErrorMessages
 {
