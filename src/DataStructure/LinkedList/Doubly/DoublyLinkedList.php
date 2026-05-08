@@ -31,4 +31,8 @@ class DoublyLinkedList implements IteratorAggregate
             $current = $current->getNext();
         }
     }
+    public static function empty(): self
+    {
+        return new self(null, 0);
+    }
 }
