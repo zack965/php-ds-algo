@@ -1,15 +1,27 @@
 <?php
 
 
-namespace Zack\PhpDsAlgo\Helpers\Algorythmes;
+namespace Zack\PhpDsAlgo;
 
 use InvalidArgumentException;
 
-class AlgorythmesGlobalHelpers
+class SortingAlgorithms
 {
-    public static function isBetween(int $number, int $lower, int $upper): bool
+    public static function selectionSort(array $nums): array
     {
-        return $number >= $lower && $number <= $upper;
+        $length_nums = count($nums);
+        for ($i = 0; $i <= $length_nums - 1; $i++) {
+            $minimumIndex = $i;
+            for ($j = $i + 1; $j <= $length_nums - 1; $j++) {
+                if ($nums[$j] < $nums[$minimumIndex]) {
+                    $minimumIndex = $j;
+                }
+            }
+            if ($minimumIndex !== $i) {
+                self::swapValuesOfArray($nums, $i, $minimumIndex);
+            }
+        }
+        return $nums;
     }
     public static function swapValuesOfArray(array &$nums, int $startIndex, int $endIndex): void
     {
@@ -25,5 +37,4 @@ class AlgorythmesGlobalHelpers
         $nums[$startIndex] = $nums[$endIndex];
         $nums[$endIndex] = $temp;
     }
-    public static function InsertCorrectly(array &$nums, int $value) {}
 }

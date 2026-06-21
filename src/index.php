@@ -1,9 +1,21 @@
 <?php
 
+use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
 use Zack\PhpDsAlgo\DataStructure\LinkedList\Single\SingleLinkedList;
 
 require_once "vendor/autoload.php";
 
+
+
+$array_big = [2, 34, 1, 2, 7, 6, 1, 9, 22, 75, 222];
+$array = [23, 451, 7, 892, 134];
+$array_small = [2, 34, 1, 2];
+
+$sorted = ArraySortAlgorythmes::insertionSort($array_big);
+
+print_r($sorted);
+
+/* 
 
 
 $list = SingleLinkedList::of([1, 2, 3])
@@ -31,3 +43,4 @@ foreach ($list as $node) {
     echo $node->getValue() . PHP_EOL;
 }
 echo "reverse list loop end " . PHP_EOL;
+ */

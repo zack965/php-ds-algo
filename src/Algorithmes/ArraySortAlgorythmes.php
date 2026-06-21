@@ -36,4 +36,18 @@ class ArraySortAlgorythmes
         }
         return $nums;
     }
+    public static function insertionSort(array $nums): array
+    {
+        $length_nums = count($nums);
+        for ($i = 1; $i <= $length_nums - 1; $i++) {
+            $j = $i;
+            while ($j > 0 && $nums[$j - 1] > $nums[$j]) {
+
+                AlgorythmesGlobalHelpers::swapValuesOfArray($nums, $j, $j - 1);
+
+                $j = $j - 1;
+            }
+        }
+        return $nums;
+    }
 }
