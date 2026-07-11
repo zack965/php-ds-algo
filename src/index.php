@@ -1,6 +1,7 @@
 <?php
 
 use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
+use Zack\PhpDsAlgo\Algorithmes\SlidingWindow;
 use Zack\PhpDsAlgo\DataStructure\LinkedList\Single\SingleLinkedList;
 
 require_once "vendor/autoload.php";
@@ -11,10 +12,23 @@ $array_big = [2, 34, 1, 2, 7, 6, 1, 9, 22, 75, 222];
 $array = [23, 451, 7, 892, 134];
 $array_small = [2, 34, 1, 2];
 
-$sorted = ArraySortAlgorythmes::insertionSort($array_big);
+//$sorted = ArraySortAlgorythmes::insertionSort($array_big);
+//print_r($sorted);
 
-print_r($sorted);
 
+
+
+SlidingWindow::processFixedSizeSlidingWindow(
+    $array,
+    3,
+    function (array $window, int $index) {
+        // Here, you can process the data however you like.
+        echo "Init Window ----" . PHP_EOL;
+        echo "Window {$index}: ";
+        print_r($window);
+        echo "Ending Window ----" . PHP_EOL;
+    }
+);
 /* 
 
 

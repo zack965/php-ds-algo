@@ -3,6 +3,7 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\LinkedList\Doubly;
 
+use InvalidArgumentException;
 use IteratorAggregate;
 
 class DoublyLinkedList implements IteratorAggregate
@@ -34,5 +35,31 @@ class DoublyLinkedList implements IteratorAggregate
     public static function empty(): self
     {
         return new self(null, 0);
+    }
+    /**
+     * fromNodes
+     *
+     * @param  DoublyLinkedListNode[] $nodes
+     * @return self
+     */
+    public static function fromNodes(array $nodes): self
+    {
+        if ($nodes === []) {
+            return self::empty();
+        }
+        foreach ($nodes as $node) {
+            if (!$node instanceof DoublyLinkedListNode) {
+                throw new InvalidArgumentException(
+                    'All elements must be instances of SingleLinkedListNode'
+                );
+            }
+        }
+        for ($i = 0; $i < count($nodes) - 1; $i++) {
+            $nodes[$i]->setNext($nodes[$i + 1]);
+            if (isset($nodes[$i - 1])) {
+                $nodes[$i]->setPrevious($nodes[$i - 1]);
+            }
+        }
+        return new self($nodes[0], count($nodes));
     }
 }
