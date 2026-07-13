@@ -26,7 +26,7 @@ class DoublyLinkedListNode
     }
 
 
-    public function getPrevious(): DoublyLinkedListNode
+    public function getPrevious(): ?DoublyLinkedListNode
     {
         return $this->previous;
     }

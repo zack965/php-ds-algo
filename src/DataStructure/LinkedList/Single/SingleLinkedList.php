@@ -9,6 +9,7 @@ use IteratorAggregate;
 use Zack\PhpDsAlgo\Constants\ErrorMessages;
 use Zack\PhpDsAlgo\Contracts\ILinkedList;
 
+
 class SingleLinkedList implements IteratorAggregate, ILinkedList
 {
     private ?SingleLinkedListNode $head = null;
@@ -110,6 +111,11 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
     }
     // methods of insertions
 
+    /**
+     * Clone nodes data and return the new head of the new LinkedList
+     *
+     * @return SingleLinkedListNode
+     */
     private function cloneNodes(): ?SingleLinkedListNode
     {
         if ($this->head === null) {
@@ -133,13 +139,13 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         return $newHead;
     }
-    public function prepend($value): self
+    public function prepend(mixed $value): self
     {
         $newHead = new SingleLinkedListNode($value);
         $newHead->setNext($this->head);
         return new self($newHead, $this->length + 1);
     }
-    public function append($value): self
+    public function append(mixed $value): self
     {
         $newNode = new SingleLinkedListNode($value);
 
@@ -158,31 +164,30 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         return new self($head, $this->length + 1);
     }
-    public function insert($value, int $index): self
+    public function insert(mixed $value, int $index): self
     {
         if ($index < 0 || $index > $this->length) {
             throw new InvalidArgumentException(ErrorMessages::INDEX_OUT_OF_BOUND);
         }
-
-        $newNode = new SingleLinkedListNode($value);
         if ($index === 0) {
             return $this->prepend($value);
         }
-        $current = $this->head;
+
 
         $newHead = $this->cloneNodes();
+        $previousNode = $newHead;
         // find node BEFORE target position
         for ($i = 0; $i < $index - 1; $i++) {
-            $current = $current->getNext();
+            $previousNode = $previousNode->getNext();
         }
 
-        if ($current === null) {
+        if (is_null($previousNode)) {
             throw new InvalidArgumentException(ErrorMessages::INDEX_OUT_OF_BOUND);
         }
 
         $newNode = new SingleLinkedListNode($value);
-        $newNode->setNext($current->getNext());
-        $current->setNext($newNode);
+        $newNode->setNext($previousNode->getNext());
+        $previousNode->setNext($newNode);
 
         return new self($newHead, $this->length + 1);
     }
@@ -290,6 +295,14 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
     }
 
     // access
+
+
+    /**
+     * get Node object based on index
+     *
+     * @param  mixed $index
+     * @return SingleLinkedListNode
+     */
     public function get(int $index): SingleLinkedListNode
     {
         if ($index < 0 || $index >= $this->length) {

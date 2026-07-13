@@ -2,10 +2,18 @@
 
 use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
 use Zack\PhpDsAlgo\Algorithmes\SlidingWindow;
+use Zack\PhpDsAlgo\DataStructure\LinkedList\Doubly\DoublyLinkedList;
 use Zack\PhpDsAlgo\DataStructure\LinkedList\Single\SingleLinkedList;
 
 require_once "vendor/autoload.php";
 
+
+$list = DoublyLinkedList::of([1, 3]);
+
+$result = $list->insert(2, 2);
+
+//$middle = $result->get(1);
+print_r($result->toArrayValues());
 
 
 $array_big = [2, 34, 1, 2, 7, 6, 1, 9, 22, 75, 222];
@@ -18,7 +26,7 @@ $array_small = [2, 34, 1, 2];
 
 
 
-SlidingWindow::processFixedSizeSlidingWindow(
+/* SlidingWindow::processFixedSizeSlidingWindow(
     $array,
     3,
     function (array $window, int $index) {
@@ -28,7 +36,7 @@ SlidingWindow::processFixedSizeSlidingWindow(
         print_r($window);
         echo "Ending Window ----" . PHP_EOL;
     }
-);
+); */
 /* 
 
 
