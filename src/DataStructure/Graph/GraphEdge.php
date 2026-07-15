@@ -9,7 +9,7 @@ class GraphEdge
     private GraphNode $sourceNode;
     private GraphNode $destinationNode;
 
-    private int $weight;
+    private int|float|null $weight;
     private array $metadata;
     public function __construct(GraphNode $sourceNode, GraphNode $destinationNode)
     {
