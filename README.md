@@ -35,7 +35,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
 ## Installation
 
 ```bash
-composer require zack/php-ds-algo
+composer require zack965/php-ds-algo
 ```
 
 For local development against a clone of this repo:
