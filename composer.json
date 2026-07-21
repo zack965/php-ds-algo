@@ -1,6 +1,9 @@
 {
     "name": "zack/php-ds-algo",
+    "description": "Classic data structures and algorithms implemented from scratch in PHP.",
     "type": "library",
+    "keywords": ["data-structures", "algorithms", "php", "linked-list", "graph", "stack", "queue"],
+    "homepage": "https://github.com/zack965/php-ds-algo",
     "license": "MIT",
     "autoload": {
         "psr-4": {
