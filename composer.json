@@ -1,5 +1,5 @@
 {
-    "name": "zack/php-ds-algo",
+    "name": "zack965/php-ds-algo",
     "description": "Classic data structures and algorithms implemented from scratch in PHP.",
     "type": "library",
     "keywords": ["data-structures", "algorithms", "php", "linked-list", "graph", "stack", "queue"],
