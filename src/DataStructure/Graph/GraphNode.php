@@ -6,7 +6,7 @@ namespace Zack\PhpDsAlgo\DataStructure\Graph;
 class GraphNode
 {
     public function __construct(
-        public mixed $value
+        public readonly int|string $value
     ) {}
     public function getValue(): mixed
     {
