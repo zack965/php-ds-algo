@@ -31,7 +31,7 @@ class DoublyLinkedListNode
         return $this->previous;
     }
 
-    public function setPrevious(DoublyLinkedListNode $previous): void
+    public function setPrevious(?DoublyLinkedListNode $previous): void
     {
         $this->previous = $previous;
     }

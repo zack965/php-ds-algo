@@ -18,7 +18,8 @@ class SlidingWindow
         if ($size <= 0 || $size > $count) {
             return;
         }
-        echo "count is : " . $count . PHP_EOL;
+
+
         for ($i = 0; $i <= $count - $size; $i++) {
             $window = array_slice($data, $i, $size);
             $callback($window, $i);

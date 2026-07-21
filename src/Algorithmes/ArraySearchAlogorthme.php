@@ -16,12 +16,12 @@ class ArraySearchAlogorthme
      * @param int $start Left boundary index (default 0)
      * @return int Index of the target if found, otherwise -1
      */
-    public static function binarySearch(array $nums, int $target, int $end, int $start = 0): int
+    public static function binarySearch(array $nums, int $target, int $start, int $end = 0): int
     {
         if ($start > $end) {
             return -1;
         }
-        $middle = $start + ($end - $start) / 2;
+        $middle = $start + intdiv($end - $start, 2);
 
         if ($nums[$middle] == $target) {
             return $middle;
@@ -108,14 +108,15 @@ class ArraySearchAlogorthme
      *
      * @return int Index of the target if found, otherwise -1
      */
-    public static function jumpSearch(array $data, int $target, int $jumpSize, int $start, int $end,int $jumpIndex) {
+    public static function jumpSearch(array $data, int $target, int $jumpSize, int $start, int $end, int $jumpIndex)
+    {
         $jumpIndex++;
         $data_count = count($data);
 
         if ($end >= $data_count) {
             $end = $data_count - 1;
         }
-      
+
         if (AlgorythmesGlobalHelpers::isBetween($target, $data[$start], $data[$end])) {
 
             // Loop from start to end index
@@ -138,5 +139,4 @@ class ArraySearchAlogorthme
             return self::jumpSearch($data, $target, $jumpSize, $newStart, $newEnd, $jumpIndex);
         }
     }
-
 }

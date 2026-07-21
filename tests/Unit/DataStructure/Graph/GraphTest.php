@@ -500,4 +500,70 @@ class GraphTest extends TestCase
         $this->assertStringContainsString('Nodes : 1', $output);
         $this->assertStringContainsString('Edges : 0', $output);
     }
+
+    public function testDisplayPrintsBothBranchCharactersForANodeWithMultipleEdges(): void
+    {
+        // A single edge always lands on the "last" branch; a node needs 2+
+        // outgoing edges to exercise the non-last "├──►" branch too.
+        $graph = new Graph();
+        $graph->addNode('A')->addNode('B')->addNode('C');
+        $graph->addEdge('A', 'B');
+        $graph->addEdge('A', 'C');
+
+        ob_start();
+        $graph->display();
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('├──►', $output);
+        $this->assertStringContainsString('└──►', $output);
+    }
+
+    // --- buildFromAdjencyList ---
+
+    public function testBuildFromAdjencyListCreatesNodesAndEdges(): void
+    {
+        $graph = new Graph();
+
+        $graph->buildFromAdjencyList([
+            'A' => ['B', 'C'],
+            'B' => ['C'],
+        ]);
+
+        $this->assertSame(['A', 'B', 'C'], $graph->getNodes());
+        $this->assertTrue($graph->hasEdge('A', 'B'));
+        $this->assertTrue($graph->hasEdge('A', 'C'));
+        $this->assertTrue($graph->hasEdge('B', 'C'));
+        $this->assertSame(3, $graph->getEdgeCount());
+    }
+
+    public function testBuildFromAdjencyListAddsNodesThatOnlyAppearAsDestinations(): void
+    {
+        $graph = new Graph();
+
+        $graph->buildFromAdjencyList(['A' => ['B']]);
+
+        $this->assertTrue($graph->hasNode('B'));
+    }
+
+    public function testBuildFromAdjencyListClearsExistingGraphState(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('Z');
+
+        $graph->buildFromAdjencyList(['A' => ['B']]);
+
+        $this->assertFalse($graph->hasNode('Z'));
+        $this->assertTrue($graph->hasNode('A'));
+        $this->assertTrue($graph->hasNode('B'));
+    }
+
+    public function testBuildFromAdjencyListWithEmptyDataResultsInEmptyGraph(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('Z');
+
+        $graph->buildFromAdjencyList([]);
+
+        $this->assertTrue($graph->isEmpty());
+    }
 }

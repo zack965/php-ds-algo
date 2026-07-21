@@ -37,7 +37,7 @@ class GraphEdge
         return $this->metadata;
     }
 
-    public function getWeight(): int|float
+    public function getWeight(): int|float|null
     {
         return $this->weight;
     }
