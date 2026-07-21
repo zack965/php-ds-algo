@@ -222,6 +222,84 @@ class SingleLinkedListTest extends TestCase
         $list->insert(99, 4);
     }
 
+    // --- insertBeforeNode / insertAfterNode ---
+
+    public function testInsertBeforeNodeInsertsValueImmediatelyBeforeTarget(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3, 4]);
+
+        $result = $list->insertBeforeNode(3, 99);
+
+        $this->assertSame([1, 2, 99, 3, 4], $result->toArrayValues());
+        $this->assertSame(5, $result->getLength());
+    }
+
+    public function testInsertBeforeNodeAtHeadPrependsValue(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $result = $list->insertBeforeNode(1, 0);
+
+        $this->assertSame([0, 1, 2, 3], $result->toArrayValues());
+    }
+
+    public function testInsertBeforeNodeDoesNotMutateOriginalList(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $list->insertBeforeNode(2, 99);
+
+        $this->assertSame([1, 2, 3], $list->toArrayValues());
+    }
+
+    public function testInsertBeforeNodeThrowsWhenTargetNotFound(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
+
+        $list->insertBeforeNode(99, 0);
+    }
+
+    public function testInsertAfterNodeInsertsValueImmediatelyAfterTarget(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3, 4]);
+
+        $result = $list->insertAfterNode(2, 99);
+
+        $this->assertSame([1, 2, 99, 3, 4], $result->toArrayValues());
+        $this->assertSame(5, $result->getLength());
+    }
+
+    public function testInsertAfterNodeAtTailAppendsValue(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $result = $list->insertAfterNode(3, 99);
+
+        $this->assertSame([1, 2, 3, 99], $result->toArrayValues());
+    }
+
+    public function testInsertAfterNodeDoesNotMutateOriginalList(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $list->insertAfterNode(2, 99);
+
+        $this->assertSame([1, 2, 3], $list->toArrayValues());
+    }
+
+    public function testInsertAfterNodeThrowsWhenTargetNotFound(): void
+    {
+        $list = SingleLinkedList::of([1, 2, 3]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
+
+        $list->insertAfterNode(99, 0);
+    }
+
     // --- Removal ---
 
     public function testRemoveByValueRemovesHeadValue(): void

@@ -20,6 +20,8 @@ interface ILinkedList
     public function prepend(mixed $value): self;
     public function append(mixed $value): self;
     public function insert(mixed $value, int $index): self;
+    public function insertBeforeNode(mixed $target, mixed $value): self;
+    public function insertAfterNode(mixed $target, mixed $value): self;
 
     // Removal
     public function removeByValue(mixed $value): self;

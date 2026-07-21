@@ -109,8 +109,27 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         return new self($head, $length);
     }
-    // methods of insertions
-
+    // methods of insertions    
+    /**
+     * Insert $value immediately before the first node holding $target.
+     *
+     * @throws InvalidArgumentException if $target is not found
+     */
+    public function insertBeforeNode(mixed $target, mixed $value): self
+    {
+        $index = $this->indexOf($target);
+        return $this->insert($value, $index);
+    }
+    /**
+     * Insert $value immediately after the first node holding $target.
+     *
+     * @throws InvalidArgumentException if $target is not found
+     */
+    public function insertAfterNode(mixed $target, mixed $value): self
+    {
+        $index = $this->indexOf($target);
+        return $this->insert($value, $index + 1);
+    }
     /**
      * Clone nodes data and return the new head of the new LinkedList
      *

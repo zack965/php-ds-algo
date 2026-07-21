@@ -230,6 +230,26 @@ class DoublyLinkedList implements IteratorAggregate, IDoublyLinkedList
  */
         return new self($newHead, $this->length + 1);
     }
+    /**
+     * Insert $value immediately before the first node holding $target.
+     *
+     * @throws InvalidArgumentException if $target is not found
+     */
+    public function insertBeforeNode(mixed $target, mixed $value): self
+    {
+        $index = $this->indexOf($target);
+        return $this->insert($value, $index);
+    }
+    /**
+     * Insert $value immediately after the first node holding $target.
+     *
+     * @throws InvalidArgumentException if $target is not found
+     */
+    public function insertAfterNode(mixed $target, mixed $value): self
+    {
+        $index = $this->indexOf($target);
+        return $this->insert($value, $index + 1);
+    }
 
     public function removeByValue(mixed $value): self
     {
