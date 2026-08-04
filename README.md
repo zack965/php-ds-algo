@@ -17,6 +17,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
   - [Sliding Window — SlidingWindow](#sliding-window--slidingwindow)
+  - [Edit Distance — LevenshteinDistance](#edit-distance--levenshteindistance)
   - [Graph Traversal — BFS / DFS](#graph-traversal--bfs--dfs)
   - [General Array Helpers — GeneralArrayAlgorithms](#general-array-helpers--generalarrayalgorithms)
   - [Low-level Helpers — AlgorythmesGlobalHelpers](#low-level-helpers--algorythmesglobalhelpers)
@@ -347,9 +348,13 @@ use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
 ArraySortAlgorythmes::bubbleSort([5, 3, 1, 4, 2]);     // [1, 2, 3, 4, 5]
 ArraySortAlgorythmes::selectionSort([5, 3, 1, 4, 2]);  // [1, 2, 3, 4, 5]
 ArraySortAlgorythmes::insertionSort([5, 3, 1, 4, 2]);  // [1, 2, 3, 4, 5]
+ArraySortAlgorythmes::MergeSort([5, 3, 1, 4, 2]);      // [1, 2, 3, 4, 5]
+ArraySortAlgorythmes::QuickSOrt([5, 3, 1, 4, 2]);      // [1, 2, 3, 4, 5]
 ```
 
-All three take an array by value and return a new sorted array — the input is never mutated. This is the canonical sorting implementation; **`src/SortingAlgorithms.php`** (top-level `Zack\PhpDsAlgo` namespace) is a legacy duplicate of `selectionSort()` kept only for backward compatibility — don't build new code against it.
+All five take an array by value and return a new sorted array — the input is never mutated. This is the canonical sorting implementation; **`src/SortingAlgorithms.php`** (top-level `Zack\PhpDsAlgo` namespace) is a legacy duplicate of `selectionSort()` kept only for backward compatibility — don't build new code against it.
+
+`MergeSort()` and `QuickSOrt()` keep their PascalCase method names (unlike the lowerCamelCase `bubbleSort`/`selectionSort`/`insertionSort`) — an inconsistency in the existing API, not a typo.
 
 ### Searching — `ArraySearchAlogorthme`
 
@@ -397,6 +402,22 @@ SlidingWindow::processFixedSizeSlidingWindow(
 ```
 
 If `$size <= 0` or `$size` is larger than the array, the callback is never invoked (no error).
+
+### Edit Distance — `LevenshteinDistance`
+
+`Zack\PhpDsAlgo\Algorithmes\LevenshteinDistance` — classic Wagner-Fischer dynamic-programming edit distance between two strings, comparing characters with `===` (case-sensitive). `calculate()` returns an array with the DP table and the reconstructed optimal path of edits, not just the distance.
+
+```php
+use Zack\PhpDsAlgo\Algorithmes\LevenshteinDistance;
+
+$result = LevenshteinDistance::calculate('kitten', 'sitting');
+
+$result['minimumEditDistance']; // 3
+$result['path'];                // list of ['step' => 'Match'|'Substitute'|'Insert'|'Delete', 'from' => ..., 'to' => ..., 'direction' => ...],
+                                 // walked from the last character back to the first
+$result['matrix'];              // the full DP table, headers included
+$result['WordsData'];           // ['word1', 'word2', 'Word1Spaced', 'Word2Spaced', 'Xrows', 'YColumns']
+```
 
 ### Graph Traversal — BFS / DFS
 
@@ -511,7 +532,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), merge/quick sort, a Binary Search Tree, and further out — deque, priority queue/heap, AVL/Red-Black trees, trie, hash table, disjoint set.
+See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, and further out — deque, priority queue/heap, AVL/Red-Black trees, trie, hash table, disjoint set.
 
 ## License
 
