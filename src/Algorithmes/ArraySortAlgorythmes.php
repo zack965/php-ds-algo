@@ -14,12 +14,7 @@ class ArraySortAlgorythmes
         }
         $low = 0;
         $height = count($data) - 1;
-
-
-
         self::processMergeSort($data, $low, $height);
-
-
         return $data;
     }
     private static function processMergeSort(array &$data, int $low, int $height)
@@ -34,11 +29,9 @@ class ArraySortAlgorythmes
     }
     private static function Merge(array &$data, int $low, int $mid, int $height)
     {
-
         $left = $low;
         $right = $mid + 1;
         $temp = [];
-
 
         while ($left <= $mid && $right <= $height) {
 
