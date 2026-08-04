@@ -7,6 +7,64 @@ use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
 class ArraySortAlgorythmes
 {
+    public static function MergeSort(array $data): array
+    {
+        if (empty($data) || count($data) == 1) {
+            return $data;
+        }
+        $low = 0;
+        $height = count($data) - 1;
+
+
+
+        self::processMergeSort($data, $low, $height);
+
+
+        return $data;
+    }
+    private static function processMergeSort(array &$data, int $low, int $height)
+    {
+        if ($low >= $height) {
+            return;
+        }
+        $mid = (int) floor(($low + $height) / 2);
+        self::processMergeSort($data, $low, $mid);
+        self::processMergeSort($data, $mid + 1, $height);
+        self::Merge($data, $low, $mid, $height);
+    }
+    private static function Merge(array &$data, int $low, int $mid, int $height)
+    {
+
+        $left = $low;
+        $right = $mid + 1;
+        $temp = [];
+
+
+        while ($left <= $mid && $right <= $height) {
+
+            if ($data[$left] <= $data[$right]) {
+                $temp[] = $data[$left];
+                $left++;
+            } else {
+                $temp[] = $data[$right];
+                $right++;
+            }
+        }
+        // copy leftovers from the left side
+        while ($left <= $mid) {
+            $temp[] = $data[$left];
+            $left++;
+        }
+        // copy leftovers from the right side
+        while ($right <= $height) {
+            $temp[] = $data[$right];
+            $right++;
+        }
+        // copy temp data to the original array
+        for ($i = 0; $i < count($temp); $i++) {
+            $data[$low + $i] = $temp[$i];
+        }
+    }
     public static function bubbleSort(array $nums): array
     {
         $length_nums = count($nums);

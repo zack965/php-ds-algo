@@ -139,4 +139,65 @@ class ArraySortAlgorythmesTest extends TestCase
 
         $this->assertSame([3, 1, 2], $input);
     }
+
+    // --- MergeSort ---
+
+    public function testMergeSortSortsUnorderedArray(): void
+    {
+        $result = ArraySortAlgorythmes::MergeSort([5, 3, 1, 4, 2]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testMergeSortHandlesAlreadySortedArray(): void
+    {
+        $result = ArraySortAlgorythmes::MergeSort([1, 2, 3, 4, 5]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testMergeSortHandlesReverseSortedArray(): void
+    {
+        $result = ArraySortAlgorythmes::MergeSort([5, 4, 3, 2, 1]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testMergeSortHandlesDuplicateValues(): void
+    {
+        $result = ArraySortAlgorythmes::MergeSort([3, 1, 2, 1, 3]);
+
+        $this->assertSame([1, 1, 2, 3, 3], $result);
+    }
+
+    public function testMergeSortHandlesEmptyArray(): void
+    {
+        $this->assertSame([], ArraySortAlgorythmes::MergeSort([]));
+    }
+
+    public function testMergeSortHandlesSingleElementArray(): void
+    {
+        $this->assertSame([42], ArraySortAlgorythmes::MergeSort([42]));
+    }
+
+    public function testMergeSortHandlesTwoElementArray(): void
+    {
+        $this->assertSame([1, 2], ArraySortAlgorythmes::MergeSort([2, 1]));
+    }
+
+    public function testMergeSortHandlesNegativeNumbers(): void
+    {
+        $result = ArraySortAlgorythmes::MergeSort([0, -3, 5, -1, 2]);
+
+        $this->assertSame([-3, -1, 0, 2, 5], $result);
+    }
+
+    public function testMergeSortDoesNotMutateInputArray(): void
+    {
+        $input = [3, 1, 2];
+
+        ArraySortAlgorythmes::MergeSort($input);
+
+        $this->assertSame([3, 1, 2], $input);
+    }
 }
