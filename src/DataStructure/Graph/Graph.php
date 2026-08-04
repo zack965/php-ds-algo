@@ -5,6 +5,7 @@ namespace Zack\PhpDsAlgo\DataStructure\Graph;
 
 use Traversable;
 use InvalidArgumentException;
+use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
 use Zack\PhpDsAlgo\Contracts\IGraph;
 use Zack\PhpDsAlgo\Exception\DuplicateNodeException;
 use Zack\PhpDsAlgo\Exception\EdgeNotFoundException;
@@ -34,7 +35,7 @@ final class Graph implements IGraph
      *
      * @return array<int|string, array<int|string>>
      */
-    public function getAdjency()
+    public function getAdjency(): array
     {
         return $this->adjacency;
     }
@@ -354,6 +355,7 @@ final class Graph implements IGraph
         }
         return $edges;
     }
+
 
     public function clearEdges(): static
     {

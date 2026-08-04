@@ -22,10 +22,15 @@ $data = [
     "e" => ["b"],
     "f" => ["d"]
 ];
+$dataCycle = [
+    'A' => ['B'],
+    'B' => ['C'],
+    'C' => ['A'],
+];
 $graph = new Graph();
-$graph->buildFromAdjencyList($data);
+$graph->buildFromAdjencyList($dataCycle);
 $graph->display();
-echo "BFS : " . PHP_EOL;
+/* echo "BFS : " . PHP_EOL;
 foreach (GraphBreadthFirstTraversal::traverse($graph, 'a') as $node) {
     echo $node . PHP_EOL;
 }
@@ -33,3 +38,4 @@ echo "DFS : " . PHP_EOL;
 foreach (GraphDepthFirstTraversal::traverse($graph, 'a') as $node) {
     echo $node . PHP_EOL;
 }
+ */

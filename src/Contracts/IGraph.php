@@ -69,6 +69,7 @@ interface IGraph
 
     public function isWeighted(): bool;
 
-    public function isEmpty(): bool;
+    public function getAdjency(): array;
+
     public function getIterator(): Traversable;
 }
