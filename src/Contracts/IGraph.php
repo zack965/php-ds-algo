@@ -71,5 +71,20 @@ interface IGraph
 
     public function getAdjency(): array;
 
+    /**
+     * Build a square adjacency matrix from the graph's nodes.
+     *
+     * Row 0 / column 0 hold the node labels; cell [i][j] is 1 when an edge
+     * exists from the i-th node to the j-th node, 0 otherwise.
+     *
+     * @return array<int, array<int, int|string>>
+     */
+    public function getAdjencyMetrix(): array;
+
+    /**
+     * Print the adjacency matrix built by getAdjencyMetrix() to stdout.
+     */
+    public function printAdjacencyMatrix(): void;
+
     public function getIterator(): Traversable;
 }

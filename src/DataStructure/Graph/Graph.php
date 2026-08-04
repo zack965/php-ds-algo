@@ -61,6 +61,72 @@ final class Graph implements IGraph
         return $this->nodes;
     }
 
+    public function getAdjencyMetrix(): array
+    {
+        $data = [];
+        $leftPos = 1;
+        $rightPos = 1;
+        $index = 0;
+        // build borders
+        foreach ($this->adjacency as $source => $edges) {
+
+            $data[0][$leftPos] = $source;
+            $data[$rightPos][0] = $source;
+
+            $leftPos++;
+            $rightPos++;
+            $index++;
+        }
+        $keys = array_keys($this->adjacency);
+        $count = count($keys) - 1;
+        for ($i = 0; $i <= $count; $i++) {
+            for ($j = 0; $j <= $count; $j++) {
+                $currentSource = $keys[$i];
+                $currentDestination = $keys[$j];
+                $exists = false;
+
+                foreach ($this->getNeighbors($currentSource) as $edge) {
+                    if ($edge->getDestinationNode() === $currentDestination) {
+                        $exists = true;
+                        break;
+                    }
+                }
+
+                $data[$i + 1][$j + 1] = $exists ? 1 : 0;
+            }
+        }
+        return $data;
+    }
+    public  function printAdjacencyMatrix(): void
+    {
+        $matrix = $this->getAdjencyMetrix();
+
+        if ($matrix === []) {
+            echo "Graph is empty." . PHP_EOL;
+            return;
+        }
+
+        // Header
+        echo "    ";
+        foreach ($matrix[0] as $label) {
+            printf("%-3s", $label);
+        }
+        echo PHP_EOL;
+
+        echo "   +" . str_repeat("---", count($matrix[0])) . PHP_EOL;
+
+        // Rows
+        for ($i = 1; $i < count($matrix); $i++) {
+            printf("%-3s| ", $matrix[$i][0]);
+
+            for ($j = 1; $j < count($matrix[0]) + 1; $j++) {
+                printf("%-3s", $matrix[$i][$j] ?? 0);
+            }
+
+            echo PHP_EOL;
+        }
+    }
+
     private bool $directed;
     private bool $weighted;
     public function __construct(

@@ -566,4 +566,184 @@ class GraphTest extends TestCase
 
         $this->assertTrue($graph->isEmpty());
     }
+
+    // --- getAdjencyMetrix ---
+
+    public function testGetAdjencyMetrixReturnsEmptyArrayForEmptyGraph(): void
+    {
+        $graph = new Graph();
+
+        $this->assertSame([], $graph->getAdjencyMetrix());
+    }
+
+    public function testGetAdjencyMetrixForSingleNodeWithoutEdges(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame([
+            0 => [1 => 'A'],
+            1 => [0 => 'A', 1 => 0],
+        ], $matrix);
+    }
+
+    public function testGetAdjencyMetrixBuildsHeaderRowAndColumnFromNodes(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame([1 => 'A', 2 => 'B', 3 => 'C'], $matrix[0]);
+        $this->assertSame('A', $matrix[1][0]);
+        $this->assertSame('B', $matrix[2][0]);
+        $this->assertSame('C', $matrix[3][0]);
+    }
+
+    public function testGetAdjencyMetrixMarksExistingEdgesWithOneAndOthersWithZero(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+        $graph->addEdge('A', 'B');
+        $graph->addEdge('A', 'C');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame([
+            0 => [1 => 'A', 2 => 'B', 3 => 'C'],
+            1 => [0 => 'A', 1 => 0, 2 => 1, 3 => 1],
+            2 => [0 => 'B', 1 => 0, 2 => 0, 3 => 0],
+            3 => [0 => 'C', 1 => 0, 2 => 0, 3 => 0],
+        ], $matrix);
+    }
+
+    public function testGetAdjencyMetrixIsNotSymmetricForDirectedGraph(): void
+    {
+        $graph = new Graph(directed: true);
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addEdge('A', 'B');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame(1, $matrix[1][2]); // A -> B
+        $this->assertSame(0, $matrix[2][1]); // B -> A
+    }
+
+    public function testGetAdjencyMetrixIsSymmetricForUndirectedGraph(): void
+    {
+        $graph = new Graph(directed: false);
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addEdge('A', 'B');
+        $graph->addEdge('B', 'A');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame(1, $matrix[1][2]); // A -> B
+        $this->assertSame(1, $matrix[2][1]); // B -> A
+    }
+
+    public function testGetAdjencyMetrixIsAllZerosForGraphWithNodesButNoEdges(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+
+        $matrix = $graph->getAdjencyMetrix();
+
+        $this->assertSame([
+            0 => [1 => 'A', 2 => 'B', 3 => 'C'],
+            1 => [0 => 'A', 1 => 0, 2 => 0, 3 => 0],
+            2 => [0 => 'B', 1 => 0, 2 => 0, 3 => 0],
+            3 => [0 => 'C', 1 => 0, 2 => 0, 3 => 0],
+        ], $matrix);
+    }
+
+    // --- printAdjacencyMatrix ---
+
+    public function testPrintAdjacencyMatrixPrintsHeaderRowWithNodeLabels(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+        $graph->addEdge('A', 'B');
+        $graph->addEdge('A', 'C');
+
+        ob_start();
+        $graph->printAdjacencyMatrix();
+        $output = ob_get_clean();
+
+        $lines = explode(PHP_EOL, $output);
+        $this->assertSame('    A  B  C  ', $lines[0]);
+        $this->assertSame('   +---------', $lines[1]);
+    }
+
+    public function testPrintAdjacencyMatrixPrintsRowLabelsAndBooleanValues(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+        $graph->addEdge('A', 'B');
+        $graph->addEdge('A', 'C');
+
+        ob_start();
+        $graph->printAdjacencyMatrix();
+        $output = ob_get_clean();
+
+        $lines = explode(PHP_EOL, $output);
+        $this->assertSame('A  | 0  1  1  ', $lines[2]);
+        $this->assertSame('B  | 0  0  0  ', $lines[3]);
+        $this->assertSame('C  | 0  0  0  ', $lines[4]);
+    }
+
+    public function testPrintAdjacencyMatrixForSingleNodeWithoutEdges(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+
+        ob_start();
+        $graph->printAdjacencyMatrix();
+        $output = ob_get_clean();
+
+        $lines = explode(PHP_EOL, $output);
+        $this->assertSame('    A  ', $lines[0]);
+        $this->assertSame('   +---', $lines[1]);
+        $this->assertSame('A  | 0  ', $lines[2]);
+    }
+
+    public function testPrintAdjacencyMatrixPrintsAllZeroRowsForNodesWithoutEdges(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+
+        ob_start();
+        $graph->printAdjacencyMatrix();
+        $output = ob_get_clean();
+
+        $lines = explode(PHP_EOL, $output);
+        $this->assertSame('A  | 0  0  ', $lines[2]);
+        $this->assertSame('B  | 0  0  ', $lines[3]);
+    }
+
+    public function testPrintAdjacencyMatrixPrintsMessageForEmptyGraphInsteadOfCrashing(): void
+    {
+        $graph = new Graph();
+
+        ob_start();
+        $graph->printAdjacencyMatrix();
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('Graph is empty.', $output);
+    }
 }

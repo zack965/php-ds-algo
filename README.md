@@ -292,7 +292,38 @@ $graph->clearEdges();            // keeps nodes, drops all edges
 $graph->clear();                 // drops everything
 
 $graph->display(); // pretty-prints the adjacency list to stdout
+
+$graph->getAdjencyMetrix();      // square adjacency matrix (see below)
+$graph->printAdjacencyMatrix();  // pretty-prints that matrix to stdout
 ```
+
+#### Adjacency matrix
+
+`getAdjencyMetrix()` builds a square matrix from the graph's current nodes: row 0 and column 0 hold the node labels (in insertion order), and cell `[i][j]` is `1` when an edge exists from the i-th node to the j-th node, `0` otherwise. Returns `[]` for an empty graph.
+
+```php
+$graph = new Graph();
+$graph->addNode('A')->addNode('B')->addNode('C');
+$graph->addEdge('A', 'B');
+$graph->addEdge('A', 'C');
+
+$graph->getAdjencyMetrix();
+// [
+//     0 => [1 => 'A', 2 => 'B', 3 => 'C'],
+//     1 => [0 => 'A', 1 => 0, 2 => 1, 3 => 1],
+//     2 => [0 => 'B', 1 => 0, 2 => 0, 3 => 0],
+//     3 => [0 => 'C', 1 => 0, 2 => 0, 3 => 0],
+// ]
+
+$graph->printAdjacencyMatrix();
+//     A  B  C
+//    +---------
+// A  | 0  1  1
+// B  | 0  0  0
+// C  | 0  0  0
+```
+
+For an undirected graph the matrix is symmetric only if you've added the reciprocal edge yourself (`addEdge()` doesn't auto-mirror it — see the caveat below). `printAdjacencyMatrix()` prints `"Graph is empty."` instead of a matrix when there are no nodes.
 
 #### Building from a plain adjacency list
 
@@ -493,6 +524,7 @@ A few behaviors worth knowing before you rely on them — none of these are "wro
 - **`GraphEdge::getWeight()` returns `null` for an unweighted edge** — `int|float|null`, not `int|float`. Always null-check (or use `Graph::isWeighted()`) before doing arithmetic on it.
 - **A handful of defensive null/false guards are unreachable in practice.** `Graph::removeNode()`, and `insert()`/`removeAt()`/`get()` on both linked lists, each have a redundant guard clause that's already preceded by an equivalent bounds check earlier in the same method — under the classes' normal invariants they can never actually trigger. Harmless, just dead code.
 - **`ArraySearchAlogorthme::interpolationSearchRecursive()` computes its estimated position with float division** and uses the (possibly fractional) result both as an array index and as a recursive `int` argument — PHP emits an implicit float-to-int-conversion deprecation notice in that case. It still returns the correct result; it's just noisy.
+- **`Graph::getAdjencyMetrix()` and `Graph::printAdjacencyMatrix()` spell "adjacency"/"matrix" inconsistently** — the getter matches the existing `getAdjency()` typo (`Adjency`, `Metrix`), while the printer spells both correctly. Same method pair, two different spellings; match whichever one you're calling.
 
 ---
 
