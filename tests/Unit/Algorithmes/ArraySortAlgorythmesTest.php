@@ -200,4 +200,56 @@ class ArraySortAlgorythmesTest extends TestCase
 
         $this->assertSame([3, 1, 2], $input);
     }
+
+    // --- QuickSOrt ---
+
+    public function testQuickSOrtSortsUnorderedArray(): void
+    {
+        $result = ArraySortAlgorythmes::QuickSOrt([5, 3, 1, 4, 2]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testQuickSOrtHandlesAlreadySortedArray(): void
+    {
+        $result = ArraySortAlgorythmes::QuickSOrt([1, 2, 3, 4, 5]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testQuickSOrtHandlesReverseSortedArray(): void
+    {
+        $result = ArraySortAlgorythmes::QuickSOrt([5, 4, 3, 2, 1]);
+
+        $this->assertSame([1, 2, 3, 4, 5], $result);
+    }
+
+    public function testQuickSOrtHandlesDuplicateValues(): void
+    {
+        $result = ArraySortAlgorythmes::QuickSOrt([3, 1, 2, 1, 3]);
+
+        $this->assertSame([1, 1, 2, 3, 3], $result);
+    }
+
+    public function testQuickSOrtHandlesEmptyArray(): void
+    {
+        $this->assertSame([], ArraySortAlgorythmes::QuickSOrt([]));
+    }
+
+    public function testQuickSOrtHandlesSingleElementArray(): void
+    {
+        $this->assertSame([42], ArraySortAlgorythmes::QuickSOrt([42]));
+    }
+
+    public function testQuickSOrtHandlesTwoElementArray(): void
+    {
+        $this->assertSame([1, 2], ArraySortAlgorythmes::QuickSOrt([2, 1]));
+    }
+
+    public function testQuickSOrtHandlesNegativeNumbers(): void
+    {
+        $result = ArraySortAlgorythmes::QuickSOrt([0, -3, 5, -1, 2]);
+
+        $this->assertSame([-3, -1, 0, 2, 5], $result);
+    }
 }

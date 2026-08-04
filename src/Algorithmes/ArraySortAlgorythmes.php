@@ -7,6 +7,48 @@ use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
 class ArraySortAlgorythmes
 {
+    public static function QuickSOrt(array $data): array
+    {
+        if (empty($data) || count($data) == 1) {
+            return $data;
+        }
+        $low = 0;
+        $height = count($data) - 1;
+        self::prociessQuickSort($data, $low, $height);
+        return $data;
+    }
+    private static function prociessQuickSort(array &$data, int $left, int $right)
+    {
+        if ($left >= $right) {
+            return;
+        }
+        $pivot = self::partition($data, $left, $right);
+        self::prociessQuickSort($data, $left, $pivot - 1);
+        self::prociessQuickSort($data, $pivot + 1, $right);
+    }
+
+    private static function partition(array &$data, int $left, int $right): int
+    {
+
+        $pivot = $data[$left];
+        $lt = $left + 1;
+        $rt = $right;
+        while ($lt <= $rt) {
+            while ($lt <= $rt && $data[$lt] <= $pivot) {
+                $lt++;
+            }
+            while ($rt >= $left && $data[$rt] > $pivot) {
+                $rt--;
+            }
+            if ($lt < $rt) {
+                AlgorythmesGlobalHelpers::swapValuesOfArray($data, $lt, $rt);
+            }
+        }
+        AlgorythmesGlobalHelpers::swapValuesOfArray($data, $left, $rt);
+
+        return $rt;
+    }
+
     public static function MergeSort(array $data): array
     {
         if (empty($data) || count($data) == 1) {
