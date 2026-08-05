@@ -34,4 +34,4 @@ $graph->buildFromAdjencyList($dataCycle);
 print_r($graph->getAdjencyMetrix());
 $graph->printAdjacencyMatrix(); */
 
-echo "result is : " . ArraySearchAlogorthme::FibonacciSearch($array, 451) . PHP_EOL;
+echo "result is : " . ArraySearchAlogorthme::FibonacciSearchALgorythme($array, 451) . PHP_EOL;
