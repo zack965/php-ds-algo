@@ -210,4 +210,87 @@ class ArraySearchAlogorthmeTest extends TestCase
 
         $this->assertSame(-1, $result);
     }
+
+    // --- linearSearch ---
+
+    public function testLinearSearchFindsFirstElement(): void
+    {
+        $data = [10, 20, 30, 40, 50];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 10);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testLinearSearchFindsMiddleElement(): void
+    {
+        $data = [10, 20, 30, 40, 50];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 30);
+
+        $this->assertSame(2, $result);
+    }
+
+    public function testLinearSearchFindsLastElement(): void
+    {
+        $data = [10, 20, 30, 40, 50];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 50);
+
+        $this->assertSame(4, $result);
+    }
+
+    public function testLinearSearchReturnsNotFoundWhenTargetIsMissing(): void
+    {
+        $data = [10, 20, 30, 40, 50];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 100);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testLinearSearchOnEmptyArrayReturnsNotFound(): void
+    {
+        $result = ArraySearchAlogorthme::linearSearch([], 5);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testLinearSearchWorksOnStringValues(): void
+    {
+        $data = ['apple', 'banana', 'cherry'];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 'banana');
+
+        $this->assertSame(1, $result);
+    }
+
+    public function testLinearSearchUsesStrictComparisonAndDoesNotMatchTypeJuggledValues(): void
+    {
+        // "0" and 0 are `==` equal in PHP but not `===` equal; linearSearch()
+        // uses `===`, so a string needle must not match an int haystack value.
+        $data = [0, 1, 2];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, '0');
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testLinearSearchReturnsStringKeyForAssociativeArray(): void
+    {
+        $data = ['a' => 1, 'b' => 2, 'c' => 3];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 2);
+
+        $this->assertSame('b', $result);
+    }
+
+    public function testLinearSearchReturnsFirstMatchWhenValueAppearsMultipleTimes(): void
+    {
+        $data = [5, 10, 10, 10, 20];
+
+        $result = ArraySearchAlogorthme::linearSearch($data, 10);
+
+        $this->assertSame(1, $result);
+    }
 }

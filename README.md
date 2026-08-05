@@ -389,7 +389,7 @@ All five take an array by value and return a new sorted array — the input is n
 
 ### Searching — `ArraySearchAlogorthme`
 
-`Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme` — all four methods return the found index, or `-1` if not found. All require a **sorted** array.
+`Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme` — all five methods return the found index/key, or `-1` if not found. `binarySearch()`, `exponentialSearchImplementation()`, `interpolationSearchRecursive()`, and `jumpSearch()` all require a **sorted** array; `linearSearch()` does not.
 
 ```php
 use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
@@ -407,9 +407,16 @@ ArraySearchAlogorthme::interpolationSearchRecursive([10, 20, 30, 40, 50], 30, 0,
 // jumpSearch(array $data, int $target, int $jumpSize, int $start, int $end, int $jumpIndex)
 // caller manages block boundaries manually — see below
 ArraySearchAlogorthme::jumpSearch([1, 3, 5, 7, 9, 11, 13, 15], 11, 3, 0, 2, 0); // 5
+
+// linearSearch(array $data, int|string $target)
+// no sort required; works on list or associative arrays, returns the matching key
+ArraySearchAlogorthme::linearSearch([10, 20, 30, 40, 50], 40); // 3
+ArraySearchAlogorthme::linearSearch(['a' => 1, 'b' => 2, 'c' => 3], 2); // 'b'
 ```
 
 `jumpSearch()` has no convenience wrapper — you must pass the *first* block's `$start`/`$end` yourself (typically `0` and `$jumpSize - 1`) and `$jumpIndex = 0`; the method advances the block internally on each recursive call.
+
+`linearSearch()` uses strict comparison (`===`), so `0`, `'0'`, and `false` are not interchangeable as targets, and it's O(n) regardless of ordering — reach for it only when the array isn't sorted or is too small to justify the other methods' setup cost.
 
 `binarySearch()`'s parameter order is `($nums, $target, $start, $end = 0)` — note `$start` comes before `$end`, and `$end` is the one with a default. Passing arguments in the wrong order is a silent logic bug, not a type error, since both are `int`.
 

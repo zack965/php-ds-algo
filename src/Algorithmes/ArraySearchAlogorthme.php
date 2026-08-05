@@ -139,4 +139,41 @@ class ArraySearchAlogorthme
             return self::jumpSearch($data, $target, $jumpSize, $newStart, $newEnd, $jumpIndex);
         }
     }
+    /**
+     * Performs a linear search on an array to find the target value.
+     *
+     * This algorithm iterates through the array from the first element to the last,
+     * comparing each value with the target. If a match is found, the index of the
+     * matching element is returned. If the target does not exist in the array,
+     * `-1` is returned.
+     *
+     * Time Complexity:
+     * - Best Case: O(1)   - Target is the first element.
+     * - Average Case: O(n) - Target is somewhere in the middle.
+     * - Worst Case: O(n)  - Target is the last element or not present.
+     *
+     * Space Complexity:
+     * - O(1)
+     *
+     * @param array<int|string, int|string> $data   The array to search (list or associative,
+     *                                                with int or string values).
+     * @param int|string                     $target The value to search for.
+     *
+     * @return int|string The index/key of the found element, or -1 if the array is empty
+     *                     or the target is not found.
+     */
+    public static function linearSearch(array $data, int|string $target): int|string
+    {
+        if (empty($data)) {
+            return -1;
+        }
+
+        foreach ($data as $index => $value) {
+            if ($value === $target) {
+                return $index;
+            }
+        }
+
+        return -1;
+    }
 }
