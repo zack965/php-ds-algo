@@ -13,7 +13,7 @@ contracts, test layout).
 - `Graph` + `GraphNode` / `GraphEdge` (directed/undirected, weighted/unweighted, adjacency list,
   adjacency matrix via `getAdjencyMetrix()` / `printAdjacencyMatrix()`)
 - Sorting: bubble, selection, insertion, merge, quick
-- Searching: binary, exponential, interpolation, jump
+- Searching: binary, exponential, interpolation, jump, linear, ternary
 - Sliding window: fixed-size
 - Graph traversal: BFS, DFS
 - Graph cycle detection: directed (`GraphDirectedCycleDetector`)
@@ -28,7 +28,7 @@ contracts, test layout).
 2. **Circular (ring-buffer) Queue** — fixed-capacity queue backed by an array
    with wraparound indices; gives real meaning to `IQueue::isFull()`.
 3. **Sorting**: heap sort, shell sort, counting sort, radix sort, bucket sort.
-4. **Searching**: linear search (baseline), ternary search, Fibonacci search.
+4. **Searching**: Fibonacci search.
 5. **Sliding window**: variable-size/dynamic window (grow/shrink on a
    predicate), monotonic-deque-based window max/min.
 6. **Deque** (double-ended queue) — new `IDeque` contract.

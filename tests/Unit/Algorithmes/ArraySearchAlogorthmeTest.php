@@ -293,4 +293,123 @@ class ArraySearchAlogorthmeTest extends TestCase
 
         $this->assertSame(1, $result);
     }
+
+    // --- TernarySearchAlgorythme ---
+    //
+    // TernarySearchAlgorythme() is the public wrapper (data, target) around
+    // the private, genuinely-converging TernarySearch(data, target, low, high)
+    // recursion, so cases below drive it purely through the wrapper.
+
+    public function testTernarySearchFindsFirstElement(): void
+    {
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 1);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testTernarySearchFindsLastElement(): void
+    {
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 20);
+
+        $this->assertSame(19, $result);
+    }
+
+    public function testTernarySearchFindsValueAtFirstMidpoint(): void
+    {
+        // For range(1, 20) (low=0, high=19), mid1 = 0 + intdiv(19, 3) = 6,
+        // so target 7 (value at index 6) is matched by the `$data[$mid1] ==
+        // $target` branch on the very first call, without recursing.
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 7);
+
+        $this->assertSame(6, $result);
+    }
+
+    public function testTernarySearchFindsValueAtSecondMidpoint(): void
+    {
+        // mid2 = 19 - intdiv(19, 3) = 13, so target 14 (value at index 13)
+        // is matched by the `$data[$mid2] == $target` branch on the first call.
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 14);
+
+        $this->assertSame(13, $result);
+    }
+
+    public function testTernarySearchFindsValueInLeftThirdViaRecursion(): void
+    {
+        // Target 3 is below mid1's value (7), exercising the
+        // "$data[$mid1] > $target" / recurse-left branch.
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 3);
+
+        $this->assertSame(2, $result);
+    }
+
+    public function testTernarySearchFindsValueInRightThirdViaRecursion(): void
+    {
+        // Target 18 is above mid2's value (14), exercising the
+        // "$data[$mid2] < $target" / recurse-right branch.
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 18);
+
+        $this->assertSame(17, $result);
+    }
+
+    public function testTernarySearchFindsValueInMiddleThirdViaRecursion(): void
+    {
+        // Target 10 sits strictly between mid1's value (7) and mid2's
+        // value (14), exercising the "in between" recursion branch.
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 10);
+
+        $this->assertSame(9, $result);
+    }
+
+    public function testTernarySearchReturnsNotFoundWhenTargetIsMissing(): void
+    {
+        $data = range(1, 20);
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 100);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testTernarySearchOnEmptyArrayReturnsNotFound(): void
+    {
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme([], 5);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testTernarySearchOnSingleElementArrayFindsIt(): void
+    {
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme([42], 42);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testTernarySearchOnSingleElementArrayReturnsNotFoundWhenMissing(): void
+    {
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme([42], 1);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testTernarySearchWorksOnStringValues(): void
+    {
+        $data = ['apple', 'banana', 'cherry', 'date', 'fig', 'grape'];
+
+        $result = ArraySearchAlogorthme::TernarySearchAlgorythme($data, 'banana');
+
+        $this->assertSame(1, $result);
+    }
 }

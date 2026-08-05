@@ -176,4 +176,55 @@ class ArraySearchAlogorthme
 
         return -1;
     }
+    /**
+     * Performs a recursive ternary search on a sorted array.
+     *
+     * Ternary search splits the current range into three parts at `$mid1`
+     * and `$mid2` instead of binary search's two, checking both midpoints
+     * before recursing into whichever third the target must lie in.
+     *
+     * @param array<int, int|string> $data Sorted array to search in
+     * @param int|string $target Value to search for
+     * @return int Index of the target if found, otherwise -1
+     */
+    public static function TernarySearchAlgorythme(array $data, int|string $target): int
+    {
+        return self::TernarySearch($data, $target, 0, count($data) - 1);
+    }
+    /**
+     * Recursive helper for {@see TernarySearchAlgorythme()}.
+     *
+     * @param array<int, int|string> $data Sorted array to search in
+     * @param int|string $target Value to search for
+     * @param int $low Left boundary index (inclusive)
+     * @param int $high Right boundary index (inclusive)
+     * @return int Index of the target if found, otherwise -1
+     */
+    private static function TernarySearch(array $data, int|string $target, int $low, int $high): int
+    {
+        if ($low > $high) {
+            return -1;
+        }
+        $mid1 = $low + intdiv($high - $low, 3);
+        $mid2 = $high -  intdiv($high - $low, 3);
+        if ($data[$mid1] == $target) {
+            return $mid1;
+        }
+        if ($data[$mid2] == $target) {
+            return $mid2;
+        }
+        // left
+        if ($data[$mid1] > $target) {
+            return self::TernarySearch($data, $target, $low, $mid1 - 1);
+        }
+        // right
+        if ($data[$mid2] < $target) {
+            return self::TernarySearch($data, $target, $mid2 + 1, $high);
+        }
+        // in between
+        if ($target > $data[$mid1] && $target < $data[$mid2]) {
+            return self::TernarySearch($data, $target, $mid1 + 1, $mid2 - 1);
+        }
+        return -1;
+    }
 }
