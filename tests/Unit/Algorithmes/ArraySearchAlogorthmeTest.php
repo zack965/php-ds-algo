@@ -412,4 +412,133 @@ class ArraySearchAlogorthmeTest extends TestCase
 
         $this->assertSame(1, $result);
     }
+
+    // --- FibonacciSearchALgorythme ---
+    //
+    // FibonacciSearchALgorythme(data, target) narrows the range with Fibonacci
+    // numbers instead of binary search's midpoint. Most of the time the match
+    // (or the final "value in between" narrowing) happens inside the `while
+    // ($f > 1)` loop, but when the loop exhausts down to `$f1 == 1` without a
+    // hit, there's one last check at `$data[$offset + 1]` — cases below cover
+    // both paths.
+
+    public function testFibonacciSearchFindsMiddleElement(): void
+    {
+        $data = [10, 20, 30, 40, 50];
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 30);
+
+        $this->assertSame(2, $result);
+    }
+
+    public function testFibonacciSearchFindsFirstElementViaDecreasingBranch(): void
+    {
+        // Target 10 sits below the first probed value, exercising the
+        // "$data[$probe] > $target" branch that shrinks $f without moving
+        // $offset, before the search eventually lands on index 0.
+        $data = [10, 20, 30, 40, 50, 60, 70];
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 10);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testFibonacciSearchFindsLastElementViaIncreasingBranch(): void
+    {
+        // Target 70 is above every probed value along the way, exercising the
+        // "$data[$probe] < $target" / $offset-advancing branch until the
+        // final probe lands exactly on the last index.
+        $data = [10, 20, 30, 40, 50, 60, 70];
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 70);
+
+        $this->assertSame(6, $result);
+    }
+
+    public function testFibonacciSearchFindsLastElementViaFallbackCheckAfterLoopExits(): void
+    {
+        // With a Fibonacci-length array (8 elements) and the target being the
+        // last element, the main loop's probes never land exactly on index 7
+        // before $f decays to 1 — the match only happens via the trailing
+        // `$data[$offset + 1] == $target` fallback check.
+        $data = range(1, 8);
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 8);
+
+        $this->assertSame(7, $result);
+    }
+
+    public function testFibonacciSearchReturnsNotFoundWhenTargetIsMissingBetweenElements(): void
+    {
+        $data = [10, 20, 30, 40, 50, 60, 70];
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 45);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testFibonacciSearchReturnsNotFoundWhenTargetAboveAllElements(): void
+    {
+        $data = [10, 20, 30, 40, 50, 60, 70];
+
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme($data, 100);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testFibonacciSearchOnEmptyArrayReturnsNotFound(): void
+    {
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme([], 5);
+
+        $this->assertSame(-1, $result);
+    }
+
+    public function testFibonacciSearchOnSingleElementArrayFindsIt(): void
+    {
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme([42], 42);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testFibonacciSearchOnSingleElementArrayReturnsNotFoundWhenMissing(): void
+    {
+        $result = ArraySearchAlogorthme::FibonacciSearchALgorythme([42], 1);
+
+        $this->assertSame(-1, $result);
+    }
+
+    // --- getClosestFibonacci ---
+    //
+    // Returns the smallest Fibonacci number >= $n (f1), along with the two
+    // preceding Fibonacci numbers (f2, f3), which FibonacciSearchALgorythme()
+    // uses to seed its probe range.
+
+    public function testGetClosestFibonacciOnZeroReturnsBaseCase(): void
+    {
+        $result = ArraySearchAlogorthme::getClosestFibonacci(0);
+
+        $this->assertSame(['f1' => 1, 'f2' => 1, 'f3' => 0], $result);
+    }
+
+    public function testGetClosestFibonacciOnOneReturnsBaseCase(): void
+    {
+        $result = ArraySearchAlogorthme::getClosestFibonacci(1);
+
+        $this->assertSame(['f1' => 1, 'f2' => 1, 'f3' => 0], $result);
+    }
+
+    public function testGetClosestFibonacciOnExactFibonacciNumberReturnsItself(): void
+    {
+        $result = ArraySearchAlogorthme::getClosestFibonacci(5);
+
+        $this->assertSame(['f1' => 5, 'f2' => 3, 'f3' => 2], $result);
+    }
+
+    public function testGetClosestFibonacciRoundsUpToNextFibonacciNumber(): void
+    {
+        // 7 is not a Fibonacci number, so the smallest Fibonacci >= 7 is 8.
+        $result = ArraySearchAlogorthme::getClosestFibonacci(7);
+
+        $this->assertSame(['f1' => 8, 'f2' => 5, 'f3' => 3], $result);
+    }
 }

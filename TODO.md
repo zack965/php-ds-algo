@@ -1,7 +1,7 @@
 # TODO
 
 Backlog of what's actually left to implement, ordered smallest-effort-first.
-Reconciled against `src/` as of 2026-07-21 — see `features.md` for conventions
+Reconciled against `src/` as of 2026-08-05 — see `features.md` for conventions
 each new structure/algorithm must follow (immutable style, `ErrorMessages`,
 contracts, test layout).
 
@@ -13,7 +13,7 @@ contracts, test layout).
 - `Graph` + `GraphNode` / `GraphEdge` (directed/undirected, weighted/unweighted, adjacency list,
   adjacency matrix via `getAdjencyMetrix()` / `printAdjacencyMatrix()`)
 - Sorting: bubble, selection, insertion, merge, quick
-- Searching: binary, exponential, interpolation, jump, linear, ternary
+- Searching: binary, exponential, interpolation, jump, linear, ternary, fibonacci
 - Sliding window: fixed-size
 - Graph traversal: BFS, DFS
 - Graph cycle detection: directed (`GraphDirectedCycleDetector`)
@@ -28,22 +28,21 @@ contracts, test layout).
 2. **Circular (ring-buffer) Queue** — fixed-capacity queue backed by an array
    with wraparound indices; gives real meaning to `IQueue::isFull()`.
 3. **Sorting**: heap sort, shell sort, counting sort, radix sort, bucket sort.
-4. **Searching**: Fibonacci search.
-5. **Sliding window**: variable-size/dynamic window (grow/shrink on a
+4. **Sliding window**: variable-size/dynamic window (grow/shrink on a
    predicate), monotonic-deque-based window max/min.
-6. **Deque** (double-ended queue) — new `IDeque` contract.
-7. **Binary Search Tree** — first non-linear structure besides `Graph`; forces
+5. **Deque** (double-ended queue) — new `IDeque` contract.
+6. **Binary Search Tree** — first non-linear structure besides `Graph`; forces
    an `IBinaryTree` contract (insert/remove/contains + in/pre/post/level-order
    traversals, per `features.md` §2).
-8. **Priority Queue / Binary Heap** (min-heap and max-heap).
-9. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
+7. **Priority Queue / Binary Heap** (min-heap and max-heap).
+8. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
    `GraphDirectedCycleDetector`), topological sort, Dijkstra, Bellman-Ford,
    Kruskal's / Prim's MST, A*.
-10. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
+9. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
     addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
     **Segment Tree** / **Fenwick Tree**.
-11. **Algorithm categories not started yet**:
+10. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`
       above.)

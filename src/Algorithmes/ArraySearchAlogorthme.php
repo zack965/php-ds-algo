@@ -227,4 +227,65 @@ class ArraySearchAlogorthme
         }
         return -1;
     }
+    public static function FibonacciSearchALgorythme(array $data, int $target): int
+    {
+        $count = count($data);
+        $fabData = self::getClosestFibonacci($count);
+        $f = $fabData["f1"];
+        $f1 = $fabData["f2"];
+        $f2 = $fabData["f3"];
+        $offset = -1;
+
+        while ($f > 1) {
+            $probe = min($offset + $f2, $count - 1);
+            if ($data[$probe] == $target) {
+                return $probe;
+            } elseif ($data[$probe] < $target) {
+                $offset = $probe;
+                $tempF1 = $f1;
+                $tempF2 = $f2;
+
+                $f  = $tempF1;
+                $f1 = $tempF2;
+                $f2 = $tempF1 - $tempF2;
+            } elseif ($data[$probe] > $target) {
+                $f  = $f2;
+                $f1 = $f1 - $f2;
+                $f2 = $f - $f1;
+            }
+        }
+        if ($f1 == 1 && isset($data[$offset + 1]) && $data[$offset + 1] == $target) {
+            return $offset + 1;
+        }
+        return -1;
+    }
+
+
+
+    public static function getClosestFibonacci(int $n): array
+    {
+        if ($n <= 1) {
+            return [
+                'f1' => 1,
+                'f2' => 1,
+                'f3' => 0,
+            ];
+        }
+
+        $fibMm2 = 0; // (m-2)'th Fibonacci
+        $fibMm1 = 1; // (m-1)'th Fibonacci
+        $fibM   = $fibMm1 + $fibMm2;
+
+        while ($fibM < $n) {
+            $fibMm2 = $fibMm1;
+            $fibMm1 = $fibM;
+            $fibM = $fibMm1 + $fibMm2;
+        }
+
+        return [
+            "f1" => $fibM,
+            "f2" => $fibMm1,
+            "f3" => $fibMm2
+        ];
+    }
 }
