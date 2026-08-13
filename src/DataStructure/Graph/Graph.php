@@ -131,10 +131,9 @@ final class Graph implements IGraph
     private bool $weighted;
     public function __construct(
         bool $directed = true,
-        bool $weighted = false
     ) {
         $this->directed = $directed;
-        $this->weighted = $weighted;
+        $this->weighted = false;
         $this->nodes = [];
         $this->adjacency = [];
     }
@@ -218,7 +217,32 @@ final class Graph implements IGraph
     /**
      * Build a graph from an adjacency list.
      *
-     * @param array<int|string, array<int, int|string>> $data
+     * $data maps each source node to a list of edge rows describing its
+     * outgoing edges. Each row is an array with:
+     *   - 'destination' (int|string, required) — the destination node.
+     *   - 'weight'      (int|float|null, optional, default null) — passed
+     *                    straight to addEdge(); the graph becomes weighted
+     *                    as soon as a row supplies a non-null weight (see
+     *                    addEdge()), and mixing weighted/unweighted rows
+     *                    throws, same as calling addEdge() directly.
+     *   - 'metadata'    (array, optional, default []) — arbitrary edge data.
+     *
+     * Example:
+     *   [
+     *       'A' => [
+     *           ['destination' => 'B', 'weight' => 4.5, 'metadata' => ['label' => 'road']],
+     *           ['destination' => 'C', 'weight' => 2.0],
+     *       ],
+     *       'B' => [
+     *           ['destination' => 'C', 'weight' => 1.0],
+     *       ],
+     *   ]
+     *
+     * Nodes are created automatically for every source and destination
+     * encountered (including nodes that only ever appear as a destination),
+     * and clear() is called first to discard any existing graph state.
+     *
+     * @param array<int|string, array<int, array{destination: int|string, weight?: int|float|null, metadata?: array}>> $data
      * @return void
      */
     public function buildFromAdjencyList(array $data): void
@@ -226,17 +250,24 @@ final class Graph implements IGraph
         $this->clear();
 
         // First pass: add every node.
-        foreach ($data as $source => $neighbors) {
+        foreach ($data as $source => $edges) {
             if (!$this->hasNode($source)) {
                 $this->addNode($source);
             }
 
-            foreach ($neighbors as $destination) {
+            foreach ($edges as $edge) {
+                $destination = $edge['destination'];
+
                 if (!$this->hasNode($destination)) {
                     $this->addNode($destination);
                 }
 
-                $this->addEdge($source, $destination);
+                $this->addEdge(
+                    $source,
+                    $destination,
+                    $edge['weight'] ?? null,
+                    $edge['metadata'] ?? [],
+                );
             }
         }
     }
@@ -282,7 +313,14 @@ final class Graph implements IGraph
         array $metadata = [],
     ): GraphEdge {
         $newEdge =  new GraphEdge($sourceNode, $destinationNode, $weight, $metadata);
-
+        // First edge determines whether the graph is weighted.
+        if ($this->getEdgeCount() === 0) {
+            $this->weighted = $weight !== null;
+        } elseif ($this->weighted !== ($weight !== null)) {
+            throw new InvalidArgumentException(
+                'A graph cannot mix weighted and unweighted edges.'
+            );
+        }
 
 
         $this->CheckNodesExists($sourceNode, $destinationNode);

@@ -265,7 +265,9 @@ See [Known Quirks & Gotchas](#known-quirks--gotchas) for two more Queue-specific
 ```php
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 
-$graph = new Graph(directed: true, weighted: false); // both flags default as shown
+$graph = new Graph(directed: true); // defaults as shown; `weighted` isn't a constructor
+                                     // flag — it's inferred implicitly the first time
+                                     // addEdge() is called with a non-null weight
 
 $graph->addNode('A')->addNode('B')->addNode('C');
 $graph->addEdge('A', 'B');
@@ -325,18 +327,28 @@ $graph->printAdjacencyMatrix();
 
 For an undirected graph the matrix is symmetric only if you've added the reciprocal edge yourself (`addEdge()` doesn't auto-mirror it — see the caveat below). `printAdjacencyMatrix()` prints `"Graph is empty."` instead of a matrix when there are no nodes.
 
-#### Building from a plain adjacency list
+#### Building from an adjacency list
+
+`buildFromAdjencyList()` maps each source node to a list of edge rows. Each row is `['destination' => ..., 'weight' => ..., 'metadata' => ...]`, where `destination` is required and `weight`/`metadata` are optional (defaulting to `null` and `[]`, same defaults as `addEdge()`):
 
 ```php
 $graph = new Graph();
 $graph->buildFromAdjencyList([
-    'A' => ['B', 'C'],
-    'B' => ['C'],
+    'A' => [
+        ['destination' => 'B', 'weight' => 4.5, 'metadata' => ['label' => 'road']],
+        ['destination' => 'C', 'weight' => 2.0],
+    ],
+    'B' => [
+        ['destination' => 'C', 'weight' => 1.0],
+    ],
 ]);
 // nodes A, B, C are created automatically (including 'C', which only ever
-// appears as a destination); edges A→B, A→C, B→C are added.
+// appears as a destination); edges A→B, A→C, B→C are added, each with
+// its own weight/metadata; the graph becomes weighted as a result.
 // buildFromAdjencyList() clears any existing graph state first.
 ```
+
+Rows without a `weight` key produce an unweighted edge (`weight` defaults to `null`) — mixing weighted and unweighted rows across the whole call throws `InvalidArgumentException`, same as calling `addEdge()` directly. The graph's `isWeighted()` flag is set implicitly from the first edge added this way, same as with manual `addEdge()` calls.
 
 #### Traversal
 

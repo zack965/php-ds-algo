@@ -28,7 +28,12 @@ interface IGraph
     /**
      * Build a graph from an adjacency list.
      *
-     * @param array<int|string, array<int, int|string>> $data
+     * $data maps each source node to a list of edge rows: each row is
+     * ['destination' => int|string, 'weight' => int|float|null, 'metadata' => array],
+     * where 'weight' and 'metadata' are optional. See Graph::buildFromAdjencyList()
+     * for the full contract.
+     *
+     * @param array<int|string, array<int, array{destination: int|string, weight?: int|float|null, metadata?: array}>> $data
      */
     public function buildFromAdjencyList(array $data): void;
     /*--------------------------------------------------------------------------

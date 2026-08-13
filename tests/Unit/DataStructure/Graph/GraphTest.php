@@ -21,12 +21,12 @@ class GraphTest extends TestCase
         $this->assertTrue($graph->isDirected());
         $this->assertFalse($graph->isWeighted());
     }
-    public function testConstructorHonoursDirectedAndWeightedFlags(): void
+    public function testConstructorHonoursDirectedFlagWeightedDefaultsFalse(): void
     {
-        $graph = new Graph(directed: false, weighted: true);
+        $graph = new Graph(directed: false);
 
         $this->assertFalse($graph->isDirected());
-        $this->assertTrue($graph->isWeighted());
+        $this->assertFalse($graph->isWeighted());
     }
     public function testNewGraphIsEmpty(): void
     {
@@ -155,7 +155,7 @@ class GraphTest extends TestCase
 
     public function testAddEdgeStoresWeightAndMetadata(): void
     {
-        $graph = new Graph(weighted: true);
+        $graph = new Graph();
         $graph->addNode('A');
         $graph->addNode('B');
 
@@ -163,6 +163,21 @@ class GraphTest extends TestCase
 
         $this->assertSame(4.5, $edge->getWeight());
         $this->assertSame(['label' => 'road'], $edge->getMetadata());
+        $this->assertTrue($graph->isWeighted());
+    }
+
+    public function testAddEdgeThrowsWhenMixingWeightedAndUnweightedEdges(): void
+    {
+        $graph = new Graph();
+        $graph->addNode('A');
+        $graph->addNode('B');
+        $graph->addNode('C');
+
+        $graph->addEdge('A', 'B', 4.5);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $graph->addEdge('B', 'C');
     }
 
 
@@ -525,8 +540,13 @@ class GraphTest extends TestCase
         $graph = new Graph();
 
         $graph->buildFromAdjencyList([
-            'A' => ['B', 'C'],
-            'B' => ['C'],
+            'A' => [
+                ['destination' => 'B'],
+                ['destination' => 'C'],
+            ],
+            'B' => [
+                ['destination' => 'C'],
+            ],
         ]);
 
         $this->assertSame(['A', 'B', 'C'], $graph->getNodes());
@@ -540,7 +560,7 @@ class GraphTest extends TestCase
     {
         $graph = new Graph();
 
-        $graph->buildFromAdjencyList(['A' => ['B']]);
+        $graph->buildFromAdjencyList(['A' => [['destination' => 'B']]]);
 
         $this->assertTrue($graph->hasNode('B'));
     }
@@ -550,7 +570,7 @@ class GraphTest extends TestCase
         $graph = new Graph();
         $graph->addNode('Z');
 
-        $graph->buildFromAdjencyList(['A' => ['B']]);
+        $graph->buildFromAdjencyList(['A' => [['destination' => 'B']]]);
 
         $this->assertFalse($graph->hasNode('Z'));
         $this->assertTrue($graph->hasNode('A'));
@@ -565,6 +585,43 @@ class GraphTest extends TestCase
         $graph->buildFromAdjencyList([]);
 
         $this->assertTrue($graph->isEmpty());
+    }
+
+    public function testBuildFromAdjencyListAppliesWeightAndMetadata(): void
+    {
+        $graph = new Graph();
+
+        $graph->buildFromAdjencyList([
+            'A' => [
+                ['destination' => 'B', 'weight' => 4.5, 'metadata' => ['label' => 'road']],
+                ['destination' => 'C', 'weight' => 2.0],
+            ],
+            'B' => [
+                ['destination' => 'C', 'weight' => 1.0],
+            ],
+        ]);
+
+        $edgeAB = $graph->getEdge('A', 'B');
+        $edgeAC = $graph->getEdge('A', 'C');
+
+        $this->assertSame(4.5, $edgeAB->getWeight());
+        $this->assertSame(['label' => 'road'], $edgeAB->getMetadata());
+        $this->assertSame(2.0, $edgeAC->getWeight());
+        $this->assertTrue($graph->isWeighted());
+    }
+
+    public function testBuildFromAdjencyListThrowsWhenMixingWeightedAndUnweightedRows(): void
+    {
+        $graph = new Graph();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $graph->buildFromAdjencyList([
+            'A' => [
+                ['destination' => 'B', 'weight' => 4.5],
+                ['destination' => 'C'],
+            ],
+        ]);
     }
 
     // --- getAdjencyMetrix ---

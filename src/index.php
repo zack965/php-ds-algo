@@ -24,9 +24,9 @@ $data = [
     "f" => ["d"]
 ];
 $dataCycle = [
-    'A' => ['B'],
-    'B' => ['C'],
-    'C' => ['A'],
+    'A' => [['destination' => 'B']],
+    'B' => [['destination' => 'C']],
+    'C' => [['destination' => 'A']],
 ];
 $graph = new Graph();
 $graph->buildFromAdjencyList($dataCycle);
