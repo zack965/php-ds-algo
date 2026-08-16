@@ -248,7 +248,6 @@ final class Graph implements IGraph
     public function buildFromAdjencyList(array $data): void
     {
         $this->clear();
-
         // First pass: add every node.
         foreach ($data as $source => $edges) {
             if (!$this->hasNode($source)) {

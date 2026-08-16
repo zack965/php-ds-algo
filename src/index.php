@@ -1,9 +1,12 @@
 <?php
 
 use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
+use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
 use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
+use Zack\PhpDsAlgo\DataStructure\Heap\MaxHeap;
+use Zack\PhpDsAlgo\DataStructure\Heap\MinHeap;
 
 require_once "vendor/autoload.php";
 
@@ -15,23 +18,32 @@ $array = [7, 23, 134, 451, 892];
 $array_small = [2, 34, 1, 2];
 
 
+
 $data = [
-    "a" => ["b", "c"],
-    "b" => ["d"],
-    "c" => ["e"],
-    "d" => [],
-    "e" => ["b"],
-    "f" => ["d"]
-];
-$dataCycle = [
-    'A' => [['destination' => 'B']],
-    'B' => [['destination' => 'C']],
-    'C' => [['destination' => 'A']],
+    'A' => [
+        ['destination' => 'B', 'weight' => 2],
+        ['destination' => 'C', 'weight' => 6],
+    ],
+    'B' => [
+        ['destination' => 'D', 'weight' => 5],
+        ['destination' => 'A', 'weight' => 2],
+        ['destination' => 'C', 'weight' => 9],
+    ],
+    'C' => [
+        ['destination' => 'A', 'weight' => 6],
+        ['destination' => 'D', 'weight' => 8],
+        ['destination' => 'B', 'weight' => 9],
+    ],
+    'D' => [
+        ['destination' => 'B', 'weight' => 5],
+        ['destination' => 'C', 'weight' => 8],
+
+    ],
 ];
 $graph = new Graph();
-$graph->buildFromAdjencyList($dataCycle);
-/* $graph->display();
-print_r($graph->getAdjencyMetrix());
-$graph->printAdjacencyMatrix(); */
-
-echo "result is : " . ArraySearchAlogorthme::FibonacciSearchALgorythme($array, 451) . PHP_EOL;
+/* $graph->buildFromAdjencyList($data);
+$graph->display();
+print_r(DijkstraAlgorithm::ShortestPath($graph, "A")); */
+$heap = new MinHeap([1, 3, 5, 7, 9, 11, 13]);
+$heap->insert(2);
+print_r($heap->getData());
