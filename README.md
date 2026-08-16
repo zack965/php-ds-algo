@@ -518,11 +518,7 @@ AlgorythmesGlobalHelpers::isBetween(5, 1, 10); // true, inclusive on both ends
 $nums = [1, 2, 3];
 AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums is now [3, 2, 1]
 // throws InvalidArgumentException if either index doesn't exist in the array
-```
 
-`InsertCorrectly(array &$nums, int $value)` also exists on this class but is currently an **empty, unimplemented stub** — calling it is a safe no-op (returns `null`, leaves the array untouched), not a working insertion-sort primitive.
-
----
 
 ## Exceptions & Error Handling
 

@@ -74,19 +74,4 @@ class AlgorythmesGlobalHelpersTest extends TestCase
 
         AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 99);
     }
-
-    // --- InsertCorrectly ---
-
-    public function testInsertCorrectlyIsCurrentlyAnEmptyStub(): void
-    {
-        // No implementation exists yet — this pins down the current no-op
-        // behavior (returns null, leaves the array untouched) so a real
-        // implementation later will visibly change this test.
-        $nums = [1, 2, 3];
-
-        $result = AlgorythmesGlobalHelpers::InsertCorrectly($nums, 4);
-
-        $this->assertNull($result);
-        $this->assertSame([1, 2, 3], $nums);
-    }
 }

@@ -25,5 +25,4 @@ class AlgorythmesGlobalHelpers
         $nums[$startIndex] = $nums[$endIndex];
         $nums[$endIndex] = $temp;
     }
-    public static function InsertCorrectly(array &$nums, int $value) {}
 }
