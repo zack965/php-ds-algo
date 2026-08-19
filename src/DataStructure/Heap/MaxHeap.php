@@ -4,42 +4,53 @@
 namespace Zack\PhpDsAlgo\DataStructure\Heap;
 
 use Zack\PhpDsAlgo\Contracts\IHeap;
+use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
-class MaxHeap implements IHeap
+class MaxHeap extends AbstractBinaryHeap
 {
-    /**
-     * @var int[]
-     */
-    protected array $data = [];
-
-
-    public function __construct(array $data)
+    protected function getDefaultComparator(): callable
     {
-        $this->data = $data;
+        return function ($a, $b): int {
+            if ($a == $b) {
+                return 0;
+            }
+            return $a > $b ? -1 : 1;
+        };
     }
-
-
-
-
-    public function insert(mixed $value): void {}
-
-    public function peek(): mixed
+    public function heapifyUp(int $index): void
     {
-        return "jelo";
+        $currentIndex = $index;
+        while ($currentIndex != 0) {
+
+            $parentIndex = $this->getParentIndex($currentIndex);
+            if ($this->compare($this->heap[$currentIndex], $this->heap[$parentIndex]) >= 0) {
+                break;
+            }
+            AlgorythmesGlobalHelpers::swapValuesOfArray($this->heap, $currentIndex, $parentIndex);
+
+            $currentIndex = $parentIndex;
+        }
     }
-
-    public function extract(): mixed
+    public function heapifyDown(int $index): void
     {
-        return "jelo";
-    }
-
-    public function isEmpty(): bool
-    {
-        return count($this->data) == 0;
-    }
-
-    public function size(): int
-    {
-        return count($this->data);
+        $currentIndex = $index;
+        while (($this->hasLeftChild($currentIndex))) {
+            $leftChild = $this->getLeftChildIndex($currentIndex);
+            $rightChild = $this->getRightChildIndex($currentIndex);
+            // determine the smallest child index
+            if (!$this->hasRightChild($currentIndex)) {
+                $largestChildIndex = $leftChild;
+            } else {
+                $largestChildIndex = $this->heap[$leftChild] >= $this->heap[$rightChild]
+                    ? $leftChild
+                    : $rightChild;
+            }
+            if ($this->compare($this->heap[$currentIndex], $this->heap[$largestChildIndex]) <= 0) {
+                break;
+            } else {
+                AlgorythmesGlobalHelpers::swapValuesOfArray($this->heap, $currentIndex, $largestChildIndex);
+            }
+            $currentIndex = $largestChildIndex;
+        }
     }
 }

@@ -3,150 +3,55 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\Heap;
 
-use RuntimeException;
-use Zack\PhpDsAlgo\Contracts\IHeap;
 use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
-class MinHeap implements IHeap
+class MinHeap extends AbstractBinaryHeap
 {
-
-    /**
-     * @var int[]
-     */
-    private array $data = [];
-
-
-    public function __construct(array $data)
+    protected function getDefaultComparator(): callable
     {
-        $this->data = $data;
-        $this->checker();
-    }
-
-
-
-
-    private function checker()
-    {
-        $smallest = $this->data[0];
-        for ($i = 0; $i < count($this->data); $i++) {
-            $item = $this->data[$i];
-            if ($item < $smallest) {
-                throw new RuntimeException("Unordered Data");
+        return function ($a, $b): int {
+            if ($a == $b) {
+                return 0;
             }
-        }
+            return $a < $b ? -1 : 1;
+        };
     }
-    private function getParent(int $i): int
-    {
-        return floor(($i - 1) / 2);
-    }
-    private function getLeftChild(int $i): int
-    {
-        return 2 * $i + 1;
-    }
-    private function getRightChild(int $i): int
-    {
-        return 2 * $i + 2;
-    }
-    public function insert(mixed $value): void
-    {
-        if (empty($this->data)) {
-            $this->data[] = $value;
-            return;
-        }
-        $this->data[] = $value;
-        $currentIndex = count($this->data) - 1;
-        $parentIndex = $this->getParent($currentIndex);
 
-        while ($this->data[$currentIndex] < $this->data[$parentIndex]) {
+    public function heapifyUp(int $index): void
+    {
+        $currentIndex = $index;
+        while ($currentIndex != 0) {
 
-            if ($this->data[$parentIndex] <= $this->data[$currentIndex]) {
+            $parentIndex = $this->getParentIndex($currentIndex);
+            if ($this->compare($this->heap[$currentIndex], $this->heap[$parentIndex]) >= 0) {
                 break;
-                //   return;
-            } else {
-                AlgorythmesGlobalHelpers::swapValuesOfArray($this->data, $parentIndex, $currentIndex);
-                $currentIndex = $parentIndex;
-                if ($currentIndex == 0) {
-                    break;
-                }
-                $parentIndex = $this->getParent($currentIndex);
             }
-        }
+            AlgorythmesGlobalHelpers::swapValuesOfArray($this->heap, $currentIndex, $parentIndex);
 
-        $this->checker();
-    }
-    private function hasLeftChild(int $i): bool
-    {
-        return $this->getLeftChild($i) < count($this->data);
-    }
-    public function extract(): mixed
-    {
-        if (empty($this->data)) {
-            throw new RuntimeException("The heap is empty");
+            $currentIndex = $parentIndex;
         }
-        if (count($this->data) == 1) {
-            $root = $this->data[0];
-
-            $this->data = [];
-            return $root;
-        }
-        $root = $this->data[0];
-        $lastElement = $this->data[count($this->data) - 1];
-        // starting process
-        $this->data[0] = $lastElement;
-        array_pop($this->data);
-        //        $this->data = array_pop($this->data);
-        $currentIndex = 0;
+    }
+    public function heapifyDown(int $index): void
+    {
+        $currentIndex = $index;
         while (($this->hasLeftChild($currentIndex))) {
-
-            $leftChild = $this->getLeftChild($currentIndex);
-            $rightChild = $this->getRightChild($currentIndex);
-
-            if (!isset($this->data[$rightChild])) {
-                $smallest = $leftChild;
+            $leftChild = $this->getLeftChildIndex($currentIndex);
+            $rightChild = $this->getRightChildIndex($currentIndex);
+            // determine the smallest child index
+            if (!$this->hasRightChild($currentIndex)) {
+                $smallestChildIndex = $leftChild;
             } else {
-                $smallest = $this->data[$leftChild] <= $this->data[$rightChild]
+                $smallestChildIndex = $this->heap[$leftChild] <= $this->heap[$rightChild]
                     ? $leftChild
                     : $rightChild;
             }
-            if ($this->data[$currentIndex] <= $this->data[$smallest]) {
+            //      if ($this->heap[$currentIndex] <= $this->heap[$smallestChildIndex]) {
+            if ($this->compare($this->heap[$currentIndex], $this->heap[$smallestChildIndex]) <= 0) {
                 break;
+            } else {
+                AlgorythmesGlobalHelpers::swapValuesOfArray($this->heap, $currentIndex, $smallestChildIndex);
             }
-            AlgorythmesGlobalHelpers::swapValuesOfArray($this->data, $currentIndex, $smallest);
-            $currentIndex = $smallest;
+            $currentIndex = $smallestChildIndex;
         }
-
-
-
-        return $root;
-    }
-
-    public function peek(): mixed
-    {
-        if (empty($this->data)) {
-            throw new RuntimeException("The heap is empty");
-        }
-        return $this->data[0];
-    }
-
-
-
-    public function isEmpty(): bool
-    {
-        return count($this->data) == 0;
-    }
-
-    public function size(): int
-    {
-        return count($this->data);
-    }
-
-    /**
-     * Get the value of data
-     *
-     * @return array<mixed>
-     */
-    public function getData()
-    {
-        return $this->data;
     }
 }
