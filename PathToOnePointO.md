@@ -15,7 +15,9 @@ _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
   weighted/unweighted, adjacency list + matrix), `MinHeap`/`MaxHeap` (array-backed
-  binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support).
+  binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support),
+  `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue` contract, `MaxHeap`-backed
+  value/priority wrapper).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -99,8 +101,10 @@ item is now done (see below), the rest of this list is still open:
 - [x] **Binary Heap / Priority Queue** (min- and max-heap) — every algorithms
       book pairs this with BST and with Dijkstra below; also unblocks heap
       sort. `src/DataStructure/Heap/`. **Done** — `AbstractBinaryHeap` +
-      `MinHeap`/`MaxHeap`, `IHeap` contract, custom-comparator support, tests
-      in `tests/Unit/DataStructure/Heap/`, documented in the README and
+      `MinHeap`/`MaxHeap`, `IHeap` contract, custom-comparator support, plus a
+      dedicated `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue`
+      contract, `MaxHeap`-backed value/priority wrapper) on top, tests in
+      `tests/Unit/DataStructure/Heap/`, documented in the README and
       `articles/13-heap.md`. Heap sort itself (below) is still open.
 - [ ] **Hash Table / Hash Map** — the single most conspicuous absence for a
       "data structures" library; pick one collision strategy (chaining is the

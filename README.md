@@ -14,6 +14,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [Queue](#queue)
   - [Graph](#graph)
   - [Heap (MinHeap / MaxHeap)](#heap-minheap--maxheap)
+  - [PriorityQueue](#priorityqueue)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
@@ -72,7 +73,7 @@ echo implode(', ', $sorted); // 1, 2, 3, 4, 5
 
 ## Data Structures
 
-All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, and `Heap` (`MinHeap`/`MaxHeap`) are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s `insert()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
+All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), and `PriorityQueue` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s and `PriorityQueue`'s `insert()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap) and [PriorityQueue](#priorityqueue) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
 
 ### SingleLinkedList
 
@@ -482,6 +483,46 @@ A `MinHeap` with a descending comparator and a `MaxHeap` with an ascending compa
 
 ---
 
+### PriorityQueue
+
+`Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue` — implements `IPriorityQueue`. A thin, value-priority wrapper around an internal `MaxHeap` of `PriorityQueueNode` objects (each pairing a `value` with a numeric `priority`), rather than a heap you feed raw comparable values yourself. **Mutable**, same as `MinHeap`/`MaxHeap` — `insert()`/`insertMany()`/`clear()` change the queue in place and return `void`. **No static factories** — construct with `new PriorityQueue(int $capacity = 10)`; the capacity is forwarded straight to the underlying `MaxHeap`.
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue;
+use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueueNode;
+
+$queue = new PriorityQueue(); // capacity defaults to 10
+
+$queue->insert('low', 1);
+$queue->insert('urgent', 9);
+$queue->insert('medium', 5);
+
+$queue->peek()->getValue();     // 'urgent' — peek() returns the PriorityQueueNode itself, not the bare value
+$queue->peek()->getPriority();  // 9
+
+$queue->extract()->getValue();  // 'urgent' — removes and returns the highest-priority node
+$queue->extract()->getValue();  // 'medium'
+$queue->extract()->getValue();  // 'low'
+```
+
+`insert(mixed $value, int|float $priority)` wraps `$value`/`$priority` into a `PriorityQueueNode` internally and feeds it to the `MaxHeap`, so **higher priority number always extracts first** — there's no constructor flag to invert this (unlike `MinHeap`/`MaxHeap`'s custom-comparator support). `insertMany(array $nodes)` takes an array of pre-built `PriorityQueueNode` instances and inserts each one in turn:
+
+```php
+$queue->insertMany([
+    new PriorityQueueNode('a', 1),
+    new PriorityQueueNode('b', 9),
+    new PriorityQueueNode('c', 5),
+]);
+```
+
+`isEmpty()`, `size()`, and `clear()` all delegate straight to the underlying `MaxHeap` and behave identically. Like `MaxHeap`, `peek()` and `extract()` throw **`RuntimeException`** (`"Heap is empty"`) — not `InvalidArgumentException` — when called on an empty queue.
+
+`PriorityQueueNode` (`Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueueNode`) is a small, standalone value object — `getValue(): mixed` and `getPriority(): int|float`, both set only via the constructor (no setters). Nothing stops you from constructing one directly and passing it to `insertMany()`, but `insert()` is the more direct path for adding a single value/priority pair.
+
+> **Priority ties aren't ordered by insertion.** When two nodes share the same priority, `PriorityQueue`'s comparator returns `0` for them, so which one extracts first depends on the underlying `MaxHeap`'s internal layout, not FIFO/LIFO order among equal priorities — don't rely on tie-breaking behavior.
+
+---
+
 ## Algorithms
 
 Algorithm classes live under `src/Algorithmes/` and are static-method utility classes operating on plain PHP arrays — fully decoupled from the data structures above.
@@ -630,7 +671,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | Exception | Thrown by | Notes |
 |---|---|---|
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
-| `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap | The only structure in this library that throws `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
+| `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
 | `Zack\PhpDsAlgo\Exception\DuplicateNodeException` | `Graph::addNode()` on a duplicate | Built via `DuplicateNodeException::nodeDuplicate($value)` |
 | `Zack\PhpDsAlgo\Exception\EdgeNotFoundException` | `Graph::getEdge()` on a missing edge | Built via `EdgeNotFoundException::edgeNotFound($source, $destination)` |
@@ -681,14 +722,14 @@ There is no other linter or static analysis tool configured — `php -l path/to/
 src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue
 ├── DataStructure/
 │   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
 │   ├── Stack/                 # ArrayStack
 │   ├── Queue/                 # Queue
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
-│   └── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap
+│   └── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
 ├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
 ├── SortingAlgorithms.php      # legacy duplicate — not canonical, see Sorting section above
@@ -699,7 +740,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
+See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
 
 ## License
 

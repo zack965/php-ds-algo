@@ -15,6 +15,10 @@ contracts, test layout).
 - `MinHeap` / `MaxHeap` (array-backed binary heap over `AbstractBinaryHeap` +
   the `IHeap` contract; custom-comparator support, capacity growth). Mutable,
   like `ArrayStack`/`Queue`/`Graph` — no static factories, construct with `new`.
+- `PriorityQueue` / `PriorityQueueNode` (`src/DataStructure/Heap/`,
+  `IPriorityQueue` contract) — value/priority wrapper around an internal
+  `MaxHeap`; higher priority extracts first. Mutable, no static factories,
+  same shape as `MinHeap`/`MaxHeap`.
 - Sorting: bubble, selection, insertion, merge, quick
 - Searching: binary, exponential, interpolation, jump, linear, ternary, fibonacci
 - Sliding window: fixed-size
@@ -40,8 +44,9 @@ contracts, test layout).
 7. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
    `GraphDirectedCycleDetector`), topological sort, Dijkstra, Bellman-Ford,
-   Kruskal's / Prim's MST, A*. Dijkstra can now build on the `MinHeap` that
-   just landed for its priority queue.
+   Kruskal's / Prim's MST, A*. Dijkstra can now build on the `MinHeap` (or
+   the new `PriorityQueue`, though that one's `MaxHeap`-backed and would need
+   inverted priorities) that just landed for its priority queue.
 8. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
     addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
     **Segment Tree** / **Fenwick Tree**.
