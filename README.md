@@ -485,13 +485,14 @@ A `MinHeap` with a descending comparator and a `MaxHeap` with an ascending compa
 
 ### PriorityQueue
 
-`Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue` — implements `IPriorityQueue`. A thin, value-priority wrapper around an internal `MaxHeap` of `PriorityQueueNode` objects (each pairing a `value` with a numeric `priority`), rather than a heap you feed raw comparable values yourself. **Mutable**, same as `MinHeap`/`MaxHeap` — `insert()`/`insertMany()`/`clear()` change the queue in place and return `void`. **No static factories** — construct with `new PriorityQueue(int $capacity = 10)`; the capacity is forwarded straight to the underlying `MaxHeap`.
+`Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue` — implements `IPriorityQueue`. A thin, value-priority wrapper around an internal `MaxHeap` or `MinHeap` of `PriorityQueueNode` objects (each pairing a `value` with a numeric `priority`), rather than a heap you feed raw comparable values yourself. **Mutable**, same as `MinHeap`/`MaxHeap` — `insert()`/`insertMany()`/`clear()` change the queue in place and return `void`. **No static factories** — construct with `new PriorityQueue(PriorityQueueTypeEnum $type, int $capacity = 10)`; `$type` (required, no default) picks which internal heap backs the queue and `$capacity` is forwarded straight to it.
 
 ```php
 use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue;
 use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueueNode;
+use Zack\PhpDsAlgo\enums\PriorityQueueTypeEnum;
 
-$queue = new PriorityQueue(); // capacity defaults to 10
+$queue = new PriorityQueue(PriorityQueueTypeEnum::Max); // capacity defaults to 10
 
 $queue->insert('low', 1);
 $queue->insert('urgent', 9);
@@ -505,7 +506,21 @@ $queue->extract()->getValue();  // 'medium'
 $queue->extract()->getValue();  // 'low'
 ```
 
-`insert(mixed $value, int|float $priority)` wraps `$value`/`$priority` into a `PriorityQueueNode` internally and feeds it to the `MaxHeap`, so **higher priority number always extracts first** — there's no constructor flag to invert this (unlike `MinHeap`/`MaxHeap`'s custom-comparator support). `insertMany(array $nodes)` takes an array of pre-built `PriorityQueueNode` instances and inserts each one in turn:
+`PriorityQueueTypeEnum` (`Zack\PhpDsAlgo\enums\PriorityQueueTypeEnum`) is a string-backed enum with two cases, `Max` and `Min`. Pass `PriorityQueueTypeEnum::Max` to extract highest-priority-first (backed internally by a `MaxHeap`), or `PriorityQueueTypeEnum::Min` to extract lowest-priority-first (backed internally by a `MinHeap`) — same API either way, just swap the constructor argument:
+
+```php
+$queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+$queue->insert('low', 1);
+$queue->insert('urgent', 9);
+$queue->insert('medium', 5);
+
+$queue->extract()->getValue();  // 'low' — lowest priority extracts first
+$queue->extract()->getValue();  // 'medium'
+$queue->extract()->getValue();  // 'urgent'
+```
+
+`insert(mixed $value, int|float $priority)` wraps `$value`/`$priority` into a `PriorityQueueNode` internally and feeds it to whichever heap `$type` selected. `insertMany(array $nodes)` takes an array of pre-built `PriorityQueueNode` instances and inserts each one in turn:
 
 ```php
 $queue->insertMany([
@@ -515,11 +530,11 @@ $queue->insertMany([
 ]);
 ```
 
-`isEmpty()`, `size()`, and `clear()` all delegate straight to the underlying `MaxHeap` and behave identically. Like `MaxHeap`, `peek()` and `extract()` throw **`RuntimeException`** (`"Heap is empty"`) — not `InvalidArgumentException` — when called on an empty queue.
+`isEmpty()`, `size()`, and `clear()` all delegate straight to the underlying heap and behave identically regardless of `$type`. Like `MaxHeap`/`MinHeap`, `peek()` and `extract()` throw **`RuntimeException`** (`"Heap is empty"`) — not `InvalidArgumentException` — when called on an empty queue.
 
 `PriorityQueueNode` (`Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueueNode`) is a small, standalone value object — `getValue(): mixed` and `getPriority(): int|float`, both set only via the constructor (no setters). Nothing stops you from constructing one directly and passing it to `insertMany()`, but `insert()` is the more direct path for adding a single value/priority pair.
 
-> **Priority ties aren't ordered by insertion.** When two nodes share the same priority, `PriorityQueue`'s comparator returns `0` for them, so which one extracts first depends on the underlying `MaxHeap`'s internal layout, not FIFO/LIFO order among equal priorities — don't rely on tie-breaking behavior.
+> **Priority ties aren't ordered by insertion.** When two nodes share the same priority, `PriorityQueue`'s comparator returns `0` for them, so which one extracts first depends on the underlying heap's internal layout, not FIFO/LIFO order among equal priorities — don't rely on tie-breaking behavior.
 
 ---
 
@@ -671,7 +686,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | Exception | Thrown by | Notes |
 |---|---|---|
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
-| `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
+| `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
 | `Zack\PhpDsAlgo\Exception\DuplicateNodeException` | `Graph::addNode()` on a duplicate | Built via `DuplicateNodeException::nodeDuplicate($value)` |
 | `Zack\PhpDsAlgo\Exception\EdgeNotFoundException` | `Graph::getEdge()` on a missing edge | Built via `EdgeNotFoundException::edgeNotFound($source, $destination)` |
@@ -730,6 +745,7 @@ src/
 │   ├── Queue/                 # Queue
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
 │   └── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
+├── enums/                     # PriorityQueueTypeEnum
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
 ├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
 ├── SortingAlgorithms.php      # legacy duplicate — not canonical, see Sorting section above

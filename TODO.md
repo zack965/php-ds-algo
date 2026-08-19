@@ -17,8 +17,10 @@ contracts, test layout).
   like `ArrayStack`/`Queue`/`Graph` — no static factories, construct with `new`.
 - `PriorityQueue` / `PriorityQueueNode` (`src/DataStructure/Heap/`,
   `IPriorityQueue` contract) — value/priority wrapper around an internal
-  `MaxHeap`; higher priority extracts first. Mutable, no static factories,
-  same shape as `MinHeap`/`MaxHeap`.
+  `MaxHeap` or `MinHeap`, selected via a required `PriorityQueueTypeEnum`
+  constructor argument (`Max` = higher priority extracts first, `Min` =
+  lower priority extracts first). Mutable, no static factories, same shape
+  as `MinHeap`/`MaxHeap`.
 - Sorting: bubble, selection, insertion, merge, quick
 - Searching: binary, exponential, interpolation, jump, linear, ternary, fibonacci
 - Sliding window: fixed-size
@@ -45,8 +47,8 @@ contracts, test layout).
    detection for undirected graphs (directed is done — see
    `GraphDirectedCycleDetector`), topological sort, Dijkstra, Bellman-Ford,
    Kruskal's / Prim's MST, A*. Dijkstra can now build on the `MinHeap` (or
-   the new `PriorityQueue`, though that one's `MaxHeap`-backed and would need
-   inverted priorities) that just landed for its priority queue.
+   the new `PriorityQueue` constructed with `PriorityQueueTypeEnum::Min`)
+   that just landed for its priority queue.
 8. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
     addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
     **Segment Tree** / **Fenwick Tree**.

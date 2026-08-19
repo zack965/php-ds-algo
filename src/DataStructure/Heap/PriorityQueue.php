@@ -3,25 +3,45 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\Heap;
 
+use Zack\PhpDsAlgo\Contracts\IHeap;
 use Zack\PhpDsAlgo\Contracts\IPriorityQueue;
+use Zack\PhpDsAlgo\enums\PriorityQueueTypeEnum;
 
 class PriorityQueue implements IPriorityQueue
 {
     private MaxHeap $maxHeap;
-
-
+    private MinHeap $minHeap;
+    private function getHeap(): IHeap
+    {
+        return match ($this->type) {
+            PriorityQueueTypeEnum::Min => $this->minHeap,
+            PriorityQueueTypeEnum::Max => $this->maxHeap,
+        };
+    }
     public function __construct(
+        private readonly PriorityQueueTypeEnum $type,
         int $capacity = 10
     ) {
+        if ($type === PriorityQueueTypeEnum::Min) {
+            $this->minHeap = new MinHeap(
+                [],
+                $capacity,
+                $this->compareNodesForMinHeap()
+            );
+
+            return;
+        }
+
         $this->maxHeap = new MaxHeap(
             [],
             $capacity,
-            $this->compareNodes()
+            $this->compareNodesForMaxHeap()
         );
     }
-    private function compareNodes(): callable
+
+    private function compareNodesForMaxHeap(): callable
     {
-        return function (
+        return static function (
             PriorityQueueNode $a,
             PriorityQueueNode $b
         ): int {
@@ -30,6 +50,22 @@ class PriorityQueue implements IPriorityQueue
             }
 
             return $a->getPriority() > $b->getPriority()
+                ? -1
+                : 1;
+        };
+    }
+
+    private function compareNodesForMinHeap(): callable
+    {
+        return static function (
+            PriorityQueueNode $a,
+            PriorityQueueNode $b
+        ): int {
+            if ($a->getPriority() === $b->getPriority()) {
+                return 0;
+            }
+
+            return $a->getPriority() < $b->getPriority()
                 ? -1
                 : 1;
         };
@@ -43,30 +79,32 @@ class PriorityQueue implements IPriorityQueue
 
     public function insert(mixed $value, int|float $priority): void
     {
-        $node = new PriorityQueueNode($value, $priority);
-        $this->maxHeap->insert($node);
+        $this->getHeap()->insert(
+            new PriorityQueueNode($value, $priority)
+        );
     }
     public function peek(): mixed
     {
-        return $this->maxHeap->peek();
+        return $this->getHeap()->peek();
     }
+
     public function extract(): mixed
     {
-        return $this->maxHeap->extract();
+        return $this->getHeap()->extract();
     }
 
     public function isEmpty(): bool
     {
-        return $this->maxHeap->isEmpty();
+        return $this->getHeap()->isEmpty();
     }
 
     public function size(): int
     {
-        return $this->maxHeap->size();
+        return $this->getHeap()->size();
     }
 
     public function clear(): void
     {
-        $this->maxHeap->clear();
+        $this->getHeap()->clear();
     }
 }

@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueue;
 use Zack\PhpDsAlgo\DataStructure\Heap\PriorityQueueNode;
+use Zack\PhpDsAlgo\enums\PriorityQueueTypeEnum;
 
 class PriorityQueueTest extends TestCase
 {
@@ -13,7 +14,7 @@ class PriorityQueueTest extends TestCase
 
     public function testNewQueueIsEmpty(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $this->assertTrue($queue->isEmpty());
         $this->assertSame(0, $queue->size());
@@ -23,7 +24,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertIntoEmptyQueueSetsSingleElement(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insert('task-a', 5);
 
@@ -33,7 +34,7 @@ class PriorityQueueTest extends TestCase
 
     public function testPeekAfterInsertReturnsNodeWithValueAndPriority(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insert('task-a', 5);
         $node = $queue->peek();
@@ -45,7 +46,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertHigherPriorityBubblesToFront(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insert('low', 1);
         $queue->insert('high', 9);
@@ -57,7 +58,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertLowerPriorityKeepsExistingFront(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insert('high', 9);
         $queue->insert('low', 1);
@@ -67,7 +68,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertAcceptsFloatPriorities(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insert('a', 1.5);
         $queue->insert('b', 2.7);
@@ -77,7 +78,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertMaintainsHighestPriorityAtFrontAcrossManyInserts(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         foreach ([['v' => 'e', 'p' => 5], ['v' => 'c', 'p' => 8], ['v' => 'a', 'p' => 1], ['v' => 'd', 'p' => 9], ['v' => 'b', 'p' => 2]] as $item) {
             $queue->insert($item['v'], $item['p']);
@@ -91,7 +92,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertManyAddsAllNodes(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insertMany([
             new PriorityQueueNode('a', 1),
@@ -105,7 +106,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertManyOnEmptyArrayIsNoOp(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $queue->insertMany([]);
 
@@ -114,7 +115,7 @@ class PriorityQueueTest extends TestCase
 
     public function testInsertManyAppendsToExistingNodes(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('existing', 4);
 
         $queue->insertMany([
@@ -130,7 +131,7 @@ class PriorityQueueTest extends TestCase
 
     public function testPeekDoesNotRemoveElement(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('only', 1);
 
         $queue->peek();
@@ -140,7 +141,7 @@ class PriorityQueueTest extends TestCase
 
     public function testPeekThrowsWhenQueueEmpty(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Heap is empty');
@@ -152,7 +153,7 @@ class PriorityQueueTest extends TestCase
 
     public function testExtractThrowsWhenQueueEmpty(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Heap is empty');
@@ -162,7 +163,7 @@ class PriorityQueueTest extends TestCase
 
     public function testExtractReturnsAndRemovesHighestPriorityNode(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('low', 1);
         $queue->insert('high', 9);
         $queue->insert('medium', 5);
@@ -176,7 +177,7 @@ class PriorityQueueTest extends TestCase
 
     public function testExtractOnSingleElementQueueEmptiesIt(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('only', 1);
 
         $queue->extract();
@@ -186,7 +187,7 @@ class PriorityQueueTest extends TestCase
 
     public function testRepeatedExtractReturnsValuesInDescendingPriorityOrder(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         foreach (['e' => 5, 'c' => 8, 'a' => 1, 'd' => 9, 'b' => 2] as $value => $priority) {
             $queue->insert($value, $priority);
         }
@@ -201,7 +202,7 @@ class PriorityQueueTest extends TestCase
 
     public function testExtractPreservesNonIncreasingPriorityOrderWithTies(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 5);
         $queue->insert('b', 3);
         $queue->insert('c', 5);
@@ -220,7 +221,7 @@ class PriorityQueueTest extends TestCase
 
     public function testExtractAfterExhaustingQueueThrows(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 1);
         $queue->insert('b', 2);
         $queue->extract();
@@ -236,7 +237,7 @@ class PriorityQueueTest extends TestCase
 
     public function testIsEmptyReturnsFalseAfterInsert(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 1);
 
         $this->assertFalse($queue->isEmpty());
@@ -244,7 +245,7 @@ class PriorityQueueTest extends TestCase
 
     public function testSizeTracksNumberOfElements(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 1);
         $queue->insert('b', 2);
         $queue->insert('c', 3);
@@ -256,7 +257,7 @@ class PriorityQueueTest extends TestCase
 
     public function testClearEmptiesTheQueue(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 1);
         $queue->insert('b', 2);
 
@@ -268,7 +269,7 @@ class PriorityQueueTest extends TestCase
 
     public function testQueueIsUsableAfterClear(): void
     {
-        $queue = new PriorityQueue();
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max);
         $queue->insert('a', 1);
         $queue->clear();
 
@@ -283,7 +284,7 @@ class PriorityQueueTest extends TestCase
 
     public function testQueueGrowsBeyondInitialCapacity(): void
     {
-        $queue = new PriorityQueue(2);
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Max, 2);
 
         for ($i = 0; $i < 10; $i++) {
             $queue->insert("item-$i", $i);
@@ -291,5 +292,102 @@ class PriorityQueueTest extends TestCase
 
         $this->assertSame(10, $queue->size());
         $this->assertSame('item-9', $queue->peek()->getValue());
+    }
+
+    // --- Min type ---
+
+    public function testNewMinQueueIsEmpty(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+        $this->assertTrue($queue->isEmpty());
+        $this->assertSame(0, $queue->size());
+    }
+
+    public function testMinQueuePeekReturnsLowestPriorityNode(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+        $queue->insert('low', 1);
+        $queue->insert('high', 9);
+        $queue->insert('medium', 5);
+
+        $this->assertSame('low', $queue->peek()->getValue());
+        $this->assertSame(3, $queue->size());
+    }
+
+    public function testMinQueueInsertHigherPriorityKeepsExistingFront(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+        $queue->insert('low', 1);
+        $queue->insert('high', 9);
+
+        $this->assertSame('low', $queue->peek()->getValue());
+    }
+
+    public function testMinQueueInsertManyAddsAllNodes(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+        $queue->insertMany([
+            new PriorityQueueNode('a', 1),
+            new PriorityQueueNode('b', 3),
+            new PriorityQueueNode('c', 2),
+        ]);
+
+        $this->assertSame(3, $queue->size());
+        $this->assertSame('a', $queue->peek()->getValue());
+    }
+
+    public function testMinQueueExtractReturnsAndRemovesLowestPriorityNode(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+        $queue->insert('low', 1);
+        $queue->insert('high', 9);
+        $queue->insert('medium', 5);
+
+        $node = $queue->extract();
+
+        $this->assertSame('low', $node->getValue());
+        $this->assertSame(1, $node->getPriority());
+        $this->assertSame(2, $queue->size());
+    }
+
+    public function testRepeatedExtractOnMinQueueReturnsValuesInAscendingPriorityOrder(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+        foreach (['e' => 5, 'c' => 8, 'a' => 1, 'd' => 9, 'b' => 2] as $value => $priority) {
+            $queue->insert($value, $priority);
+        }
+
+        $order = [];
+        while (!$queue->isEmpty()) {
+            $order[] = $queue->extract()->getValue();
+        }
+
+        $this->assertSame(['a', 'b', 'e', 'c', 'd'], $order);
+    }
+
+    public function testMinQueuePeekThrowsWhenQueueEmpty(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Heap is empty');
+
+        $queue->peek();
+    }
+
+    public function testMinQueueGrowsBeyondInitialCapacity(): void
+    {
+        $queue = new PriorityQueue(PriorityQueueTypeEnum::Min, 2);
+
+        for ($i = 9; $i >= 0; $i--) {
+            $queue->insert("item-$i", $i);
+        }
+
+        $this->assertSame(10, $queue->size());
+        $this->assertSame('item-0', $queue->peek()->getValue());
     }
 }

@@ -16,8 +16,9 @@ _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
   weighted/unweighted, adjacency list + matrix), `MinHeap`/`MaxHeap` (array-backed
   binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support),
-  `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue` contract, `MaxHeap`-backed
-  value/priority wrapper).
+  `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue` contract, backed by
+  either a `MaxHeap` or `MinHeap` per a required `PriorityQueueTypeEnum`
+  constructor argument — value/priority wrapper).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -103,7 +104,8 @@ item is now done (see below), the rest of this list is still open:
       sort. `src/DataStructure/Heap/`. **Done** — `AbstractBinaryHeap` +
       `MinHeap`/`MaxHeap`, `IHeap` contract, custom-comparator support, plus a
       dedicated `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue`
-      contract, `MaxHeap`-backed value/priority wrapper) on top, tests in
+      contract, backed by either heap via a required `PriorityQueueTypeEnum`
+      constructor argument — value/priority wrapper) on top, tests in
       `tests/Unit/DataStructure/Heap/`, documented in the README and
       `articles/13-heap.md`. Heap sort itself (below) is still open.
 - [ ] **Hash Table / Hash Map** — the single most conspicuous absence for a
