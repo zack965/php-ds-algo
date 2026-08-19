@@ -13,6 +13,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [ArrayStack](#arraystack)
   - [Queue](#queue)
   - [Graph](#graph)
+  - [Heap (MinHeap / MaxHeap)](#heap-minheap--maxheap)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
@@ -71,7 +72,7 @@ echo implode(', ', $sorted); // 1, 2, 3, 4, 5
 
 ## Data Structures
 
-All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack` and `Queue` are the opposite: genuinely mutable.** Their "mutating" methods change the object in place and return `$this` for chaining. Keep this split in mind — it's the single biggest behavioral difference between the two groups.
+All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, and `Heap` (`MinHeap`/`MaxHeap`) are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s `insert()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
 
 ### SingleLinkedList
 
@@ -377,6 +378,110 @@ Error handling: `addNode()` on a duplicate throws `DuplicateNodeException`; `get
 
 ---
 
+### Heap (MinHeap / MaxHeap)
+
+`Zack\PhpDsAlgo\DataStructure\Heap\MinHeap` and `...\MaxHeap` — both extend the shared `AbstractBinaryHeap` and implement `IHeap`. An array-backed binary heap: `MinHeap` keeps the smallest element at the root, `MaxHeap` the largest. **Mutable**, like `ArrayStack`/`Queue`/`Graph` — `insert()`, `extract()`, and `clear()` change the heap in place. **No static factories** (no `empty()`/`of()`, unlike the linked lists) — construct directly with `new`.
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Heap\MinHeap;
+use Zack\PhpDsAlgo\DataStructure\Heap\MaxHeap;
+
+// __construct(array $data = [], int $capacity = 0, ?callable $comparator = null)
+new MinHeap();                      // empty, default capacity (16), default (ascending) ordering
+new MinHeap([5, 3, 8, 1, 9]);       // built from an array — heapified immediately, O(n)
+new MinHeap([], 64);                // empty, explicit initial capacity
+new MinHeap([5, 3, 8], 0, $cmp);    // custom comparator (see below) — 0 means "use the default capacity"
+```
+
+#### Insert / peek / extract — the core priority-queue operations
+
+```php
+$heap = new MinHeap([5, 3, 8, 1, 9]);
+
+$heap->insert(0);     // void — mutates in place, no chaining
+$heap->peek();         // 0 — smallest element, without removing it
+$heap->extract();      // 0 — removes and returns the smallest element
+$heap->extract();      // 1 — next smallest
+```
+
+`MaxHeap` is the same shape but root-is-largest:
+
+```php
+$heap = new MaxHeap([5, 3, 8, 1, 9]);
+$heap->peek();    // 9
+$heap->extract(); // 9, then 8, then 5, ...
+```
+
+The classic drain-into-sorted-array pattern:
+
+```php
+$heap = new MinHeap([5, 3, 8, 1, 9, 2, 7]);
+$sorted = [];
+while (!$heap->isEmpty()) {
+    $sorted[] = $heap->extract();
+}
+// $sorted === [1, 2, 3, 5, 7, 8, 9]
+```
+
+`peek()` and `extract()` both throw **`RuntimeException`** (`"Heap is empty"`) when called on an empty heap — note this is `RuntimeException`, not the `InvalidArgumentException` most of the rest of this library throws for "invalid state" errors (see the note in [Exceptions & Error Handling](#exceptions--error-handling)).
+
+#### Size, capacity, and clearing
+
+```php
+$heap->isEmpty();          // bool
+$heap->size();              // current element count
+$heap->getCapacity();       // current backing-array capacity (starts at 16, doubles on growth)
+$heap->ensureCapacity(100); // pre-grow to at least 100 if not already there; no-op if already >= 100
+$heap->clear();             // empties the heap in place, keeps current capacity
+```
+
+Capacity grows automatically on `insert()` (and on the array constructor, if `$data` is bigger than the requested/default capacity) — you never have to call `ensureCapacity()` yourself unless you want to avoid intermediate reallocations up front.
+
+#### Inspecting the heap
+
+```php
+$heap->toArray();  // the raw, level-order backing array — NOT sorted order
+$heap->isValid();  // bool — true iff every parent satisfies the heap property against its children
+```
+
+`toArray()` returns the heap's *internal* array representation (root at index 0, children of index `$i` at `2*$i+1`/`2*$i+2`) — it is **not** the elements in ascending/descending order. To get sorted order, drain the heap with repeated `extract()` calls as shown above (this also empties it — extract into a fresh copy if you need to keep the original).
+
+#### Custom comparators — the main way to reshape ordering
+
+The third constructor argument is `?callable $comparator`, taking `(mixed $a, mixed $b): int`. **It must return exactly `-1`, `0`, or `1`** (not an arbitrary signed integer) — see the gotcha below. The natural way to do this is PHP's spaceship operator `<=>`, which always returns one of those three values.
+
+```php
+// Reverse a MinHeap's ordering (largest first) with a descending comparator:
+$descending = fn($a, $b) => $b <=> $a;
+$heap = new MinHeap([1, 3, 2, 5, 4], 0, $descending);
+$heap->peek(); // 5
+
+// Sort custom objects by a property — the priority-queue use case:
+class Task {
+    public function __construct(public string $name, public int $priority) {}
+}
+$byPriority = fn(Task $a, Task $b) => $a->priority <=> $b->priority;
+$heap = new MinHeap([], 0, $byPriority);
+$heap->insert(new Task('low', 5));
+$heap->insert(new Task('urgent', 1));
+$heap->extract()->name; // 'urgent' — lowest priority number extracted first
+
+// Sort strings by length instead of lexicographically:
+$byLength = fn(string $a, string $b) => strlen($a) <=> strlen($b);
+$heap = new MinHeap(['banana', 'fig', 'kiwi'], 0, $byLength);
+$heap->peek(); // 'fig'
+```
+
+A `MinHeap` with a descending comparator and a `MaxHeap` with an ascending comparator behave identically — the class you pick only sets the *default* comparator (used when you pass `null`); a custom comparator fully overrides it.
+
+> **Gotcha — custom comparators must return exactly `-1`/`0`/`1`, not an arbitrary signed integer.** The classic PHP `usort()`-style comparator idiom `fn($a, $b) => $a - $b` (or `strcmp()`-style "any negative/positive number") does **not** work reliably here — `heapifyDown()`'s internal child-selection logic checks the comparator's return value against the literal value `-1`, not "is it negative." A comparator that returns e.g. `-5` will silently misorder the heap on `extract()`/the array constructor (though `insert()`-only usage is unaffected — that path only checks the sign). Always write comparators with `<=>`, which is spec'd to return exactly `-1`/`0`/`1`, and this is a non-issue.
+
+#### Advanced / internal-use methods
+
+`heapifyUp(int $index)`, `heapifyDown(int $index)`, and `buildHeap()` are part of the public `IHeap` contract (so they're callable), but they operate on internal array positions and are meant to be used by the class itself (`insert()`, `extract()`, and the array constructor already call them at the right times) — normal client code has no reason to call them directly.
+
+---
+
 ## Algorithms
 
 Algorithm classes live under `src/Algorithmes/` and are static-method utility classes operating on plain PHP arrays — fully decoupled from the data structures above.
@@ -525,6 +630,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | Exception | Thrown by | Notes |
 |---|---|---|
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
+| `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap | The only structure in this library that throws `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
 | `Zack\PhpDsAlgo\Exception\DuplicateNodeException` | `Graph::addNode()` on a duplicate | Built via `DuplicateNodeException::nodeDuplicate($value)` |
 | `Zack\PhpDsAlgo\Exception\EdgeNotFoundException` | `Graph::getEdge()` on a missing edge | Built via `EdgeNotFoundException::edgeNotFound($source, $destination)` |
@@ -552,6 +658,7 @@ A few behaviors worth knowing before you rely on them — none of these are "wro
 - **A handful of defensive null/false guards are unreachable in practice.** `Graph::removeNode()`, and `insert()`/`removeAt()`/`get()` on both linked lists, each have a redundant guard clause that's already preceded by an equivalent bounds check earlier in the same method — under the classes' normal invariants they can never actually trigger. Harmless, just dead code.
 - **`ArraySearchAlogorthme::interpolationSearchRecursive()` computes its estimated position with float division** and uses the (possibly fractional) result both as an array index and as a recursive `int` argument — PHP emits an implicit float-to-int-conversion deprecation notice in that case. It still returns the correct result; it's just noisy.
 - **`Graph::getAdjencyMetrix()` and `Graph::printAdjacencyMatrix()` spell "adjacency"/"matrix" inconsistently** — the getter matches the existing `getAdjency()` typo (`Adjency`, `Metrix`), while the printer spells both correctly. Same method pair, two different spellings; match whichever one you're calling.
+- **`MinHeap`/`MaxHeap` custom comparators must return exactly `-1`/`0`/`1`.** `heapifyDown()`'s child-selection compares the comparator's result against the literal `-1`, not its sign — a comparator written in the common `fn($a, $b) => $a - $b` style (returning an arbitrary signed magnitude) will misorder the heap once `extract()` or the array constructor runs. Always use `<=>` in a heap comparator. See [Heap](#heap-minheap--maxheap) above.
 
 ---
 
@@ -574,13 +681,14 @@ There is no other linter or static analysis tool configured — `php -l path/to/
 src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap
 ├── DataStructure/
 │   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
 │   ├── Stack/                 # ArrayStack
 │   ├── Queue/                 # Queue
-│   └── Graph/                  # Graph, GraphNode, GraphEdge
+│   ├── Graph/                  # Graph, GraphNode, GraphEdge
+│   └── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
 ├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
 ├── SortingAlgorithms.php      # legacy duplicate — not canonical, see Sorting section above
@@ -591,7 +699,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, and further out — deque, priority queue/heap, AVL/Red-Black trees, trie, hash table, disjoint set.
+See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
 
 ## License
 

@@ -5,14 +5,17 @@ tag is justified. This is the *synthesis* document — it doesn't re-list every
 backlog item already tracked in `TODO.md`/`features.md`; it defines what "done"
 means for 1.0 and sequences the smallest set of work that gets there.
 
-_Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`)._
+_Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
+2026-08-19 to reflect `MinHeap`/`MaxHeap` landing._
 
 ## Where it stands today
 
-- 471 tests / 668 assertions, all green, but **7 PHPUnit deprecations**.
+- 559 tests / 1019 assertions, all green, but **7 PHPUnit deprecations**
+  (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
-  weighted/unweighted, adjacency list + matrix).
+  weighted/unweighted, adjacency list + matrix), `MinHeap`/`MaxHeap` (array-backed
+  binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -43,11 +46,12 @@ Concretely:
 3. **No known-dead or duplicate code** in the public surface (`SortingAlgorithms.php`).
 4. **Coverage gaps closed** on everything already shipped (100% method
    coverage, not just line coverage).
-5. **The obvious category gaps closed** — right now every shipped structure
-   is linear (lists/stack/queue) plus one graph, and every algorithm family
-   except Levenshtein is array sorting/searching. No tree, no heap, no hash
-   table, no shortest-path algorithm, no DP beyond one edit-distance example,
-   no string-matching algorithm. Those are the structures/algorithms anyone
+5. **The obvious category gaps closed** — as of 2026-08-08 every shipped
+   structure was linear (lists/stack/queue) plus one graph, and every
+   algorithm family except Levenshtein was array sorting/searching: no tree,
+   no heap, no hash table, no shortest-path algorithm, no DP beyond one
+   edit-distance example, no string-matching algorithm. Heap is now closed
+   (see M2 below); the rest remain gaps. Those are the structures/algorithms anyone
    evaluating a "data structures and algorithms" library checks for first —
    see the curated list in M2 below.
 6. **A documented BC/versioning policy** (`CHANGELOG.md` + a stated semver
@@ -78,10 +82,11 @@ Concretely:
 
 Not "implement the whole backlog" — a small, deliberately curated set that
 rounds out the categories a "data structures and algorithms" library is
-expected to cover at all. Right now every shipped structure is linear
-(lists, stack, queue) plus one graph; every shipped algorithm family except
-Levenshtein is array-sorting/searching. That's a narrow slice to call 1.0.
-Each item below closes a category gap, not just adds volume:
+expected to cover at all. As of 2026-08-08 every shipped structure was linear
+(lists, stack, queue) plus one graph, and every shipped algorithm family
+except Levenshtein was array-sorting/searching — too narrow a slice to call
+1.0. Each item below closes a category gap, not just adds volume; the heap
+item is now done (see below), the rest of this list is still open:
 
 **Data structures**
 
@@ -91,9 +96,12 @@ Each item below closes a category gap, not just adds volume:
       immutable/persistent pattern (clone-then-splice, per `CLAUDE.md`) to
       prove out on a branching structure. Biggest single credibility jump.
       `src/DataStructure/Tree/BST/`, `tests/Unit/DataStructure/Tree/BST/BSTTest.php`.
-- [ ] **Binary Heap / Priority Queue** (min- and max-heap) — every algorithms
+- [x] **Binary Heap / Priority Queue** (min- and max-heap) — every algorithms
       book pairs this with BST and with Dijkstra below; also unblocks heap
-      sort. `src/DataStructure/Heap/`.
+      sort. `src/DataStructure/Heap/`. **Done** — `AbstractBinaryHeap` +
+      `MinHeap`/`MaxHeap`, `IHeap` contract, custom-comparator support, tests
+      in `tests/Unit/DataStructure/Heap/`, documented in the README and
+      `articles/13-heap.md`. Heap sort itself (below) is still open.
 - [ ] **Hash Table / Hash Map** — the single most conspicuous absence for a
       "data structures" library; pick one collision strategy (chaining is the
       simpler fit for this codebase's style) and document the choice.
@@ -104,13 +112,13 @@ Each item below closes a category gap, not just adds volume:
 
 **Algorithms**
 
-- [ ] **Heap sort** — natural pairing once the heap exists; extends
+- [ ] **Heap sort** — natural pairing now that the heap exists; extends
       `ArraySortAlgorythmes`.
 - [ ] **Dijkstra's shortest path** and **topological sort** on `Graph` — BFS/DFS
       and cycle detection exist but the library can't answer "shortest path"
       or "valid build order," which are the two questions people reach for a
-      graph library to answer. Dijkstra also validates the new heap in a
-      second real use.
+      graph library to answer. Dijkstra can now build directly on `MinHeap`
+      for its priority queue, its second real use.
 - [ ] **One DP algorithm beyond edit distance** — 0/1 knapsack or LCS,
       whichever is smaller to implement well; proves DP is a supported
       category, not a one-off next to `LevenshteinDistance`.

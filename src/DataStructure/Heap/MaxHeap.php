@@ -3,7 +3,6 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\Heap;
 
-use Zack\PhpDsAlgo\Contracts\IHeap;
 use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
 class MaxHeap extends AbstractBinaryHeap
@@ -41,7 +40,7 @@ class MaxHeap extends AbstractBinaryHeap
             if (!$this->hasRightChild($currentIndex)) {
                 $largestChildIndex = $leftChild;
             } else {
-                $largestChildIndex = $this->heap[$leftChild] >= $this->heap[$rightChild]
+                $largestChildIndex = $this->compare($this->heap[$leftChild], $this->heap[$rightChild]) == -1
                     ? $leftChild
                     : $rightChild;
             }

@@ -203,7 +203,25 @@ abstract class AbstractBinaryHeap implements IHeap
         if ($this->size <= 1) {
             return true;
         }
-        return false;
+        for (
+            $i = 0;
+            $i < $this->size - 1;
+            $i++
+        ) {
+            if ($this->hasLeftChild($i)) {
+                $leftChildIndex = $this->getLeftChildIndex($i);
+                if ($this->compare($this->heap[$i], $this->heap[$leftChildIndex]) > 0) {
+                    return false;
+                }
+            }
+            if ($this->hasRightChild($i)) {
+                $rightChildIndex = $this->getRightChildIndex($i);
+                if ($this->compare($this->heap[$i], $this->heap[$rightChildIndex]) > 0) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
     public function toArray(): array
     {

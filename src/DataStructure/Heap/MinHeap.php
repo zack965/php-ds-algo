@@ -41,7 +41,10 @@ class MinHeap extends AbstractBinaryHeap
             if (!$this->hasRightChild($currentIndex)) {
                 $smallestChildIndex = $leftChild;
             } else {
-                $smallestChildIndex = $this->heap[$leftChild] <= $this->heap[$rightChild]
+                $smallestChildIndex = $this->compare(
+                    $this->heap[$leftChild],
+                    $this->heap[$rightChild]
+                ) === -1
                     ? $leftChild
                     : $rightChild;
             }

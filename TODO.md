@@ -1,7 +1,7 @@
 # TODO
 
 Backlog of what's actually left to implement, ordered smallest-effort-first.
-Reconciled against `src/` as of 2026-08-05 — see `features.md` for conventions
+Reconciled against `src/` as of 2026-08-19 — see `features.md` for conventions
 each new structure/algorithm must follow (immutable style, `ErrorMessages`,
 contracts, test layout).
 
@@ -12,6 +12,9 @@ contracts, test layout).
 - `Queue` (array-backed queue)
 - `Graph` + `GraphNode` / `GraphEdge` (directed/undirected, weighted/unweighted, adjacency list,
   adjacency matrix via `getAdjencyMetrix()` / `printAdjacencyMatrix()`)
+- `MinHeap` / `MaxHeap` (array-backed binary heap over `AbstractBinaryHeap` +
+  the `IHeap` contract; custom-comparator support, capacity growth). Mutable,
+  like `ArrayStack`/`Queue`/`Graph` — no static factories, construct with `new`.
 - Sorting: bubble, selection, insertion, merge, quick
 - Searching: binary, exponential, interpolation, jump, linear, ternary, fibonacci
 - Sliding window: fixed-size
@@ -34,15 +37,15 @@ contracts, test layout).
 6. **Binary Search Tree** — first non-linear structure besides `Graph`; forces
    an `IBinaryTree` contract (insert/remove/contains + in/pre/post/level-order
    traversals, per `features.md` §2).
-7. **Priority Queue / Binary Heap** (min-heap and max-heap).
-8. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
+7. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
    `GraphDirectedCycleDetector`), topological sort, Dijkstra, Bellman-Ford,
-   Kruskal's / Prim's MST, A*.
-9. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
+   Kruskal's / Prim's MST, A*. Dijkstra can now build on the `MinHeap` that
+   just landed for its priority queue.
+8. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
     addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
     **Segment Tree** / **Fenwick Tree**.
-10. **Algorithm categories not started yet**:
+9. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`
       above.)
