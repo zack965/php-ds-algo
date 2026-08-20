@@ -135,7 +135,7 @@ interface IGraph
 /**
  * @template T
  */
-interface IHashTable
+interface IHashTable extends IteratorAggregate, Countable
 {
     /** @param T $value */
     public function insert(mixed $value): void;
@@ -149,12 +149,37 @@ interface IHashTable
     public function isEmpty(): bool;
     public function clear(): void;
 }
+
+/**
+ * @template K
+ * @template V
+ */
+interface IHashMap extends IteratorAggregate, Countable
+{
+    /** @param K $key, @param V $value */
+    public function put(mixed $key, mixed $value): void;
+    /** @param K $key */
+    public function delete(mixed $key): bool;
+    /** @param K $key */
+    public function hasKey(mixed $key): bool;
+    /** @param K $key, @return V|null */
+    public function get(mixed $key): mixed;
+    public function getSize(): int;
+    public function isEmpty(): bool;
+    public function clear(): void;
+}
 ```
 
-`HashTable` (`src/DataStructure/HashTabe/`, implements the full `IHashTable` shown above) is the
-first structure in this repo documented with a real `@template T` PHPDoc generic — PHP has no
-runtime generics, so parameters/returns stay `mixed` in code and `T` only in docblocks. Follow
-this pattern for any future structure that shouldn't be pinned to one value type.
+`HashTable` and `HashMap` (`src/DataStructure/HashTabe/`, implementing the full `IHashTable`/
+`IHashMap` shown above) are this repo's first structures documented with a real `@template`
+PHPDoc generic — PHP has no runtime generics, so parameters/returns stay `mixed` in code and
+`T`/`K`/`V` only in docblocks. Follow this pattern for any future structure that shouldn't be
+pinned to one value type. They're also the first to `extends IteratorAggregate, Countable` at
+the *interface* level (not just implement a `getIterator()` method on the class) — do this for
+any future iterable structure's contract too, since declaring `getIterator()` without also
+`extends IteratorAggregate` is exactly the trap `IGraph`/`Graph` fell into (see the `Graph`
+gotcha in the README): `foreach` silently iterates zero times through an interface-typed
+reference instead of erroring or calling the method.
 
 ## 3. Missing data structures (backlog)
 

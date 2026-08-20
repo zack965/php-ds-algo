@@ -3,11 +3,27 @@
 
 namespace Zack\PhpDsAlgo\Contracts;
 
+use Countable;
+use IteratorAggregate;
+use Traversable;
+
 /**
  * @template T
+ *
+ * @extends IteratorAggregate<int, T>
  */
-interface IHashTable
+interface IHashTable extends IteratorAggregate, Countable
 {
+    /**
+     * @return Traversable<int, T> Every stored value, in the same order as
+     *  {@see getAllValues()}.
+     */
+    public function getIterator(): Traversable;
+
+    /**
+     * Alias for {@see getSize()}, wired to PHP's `count()`.
+     */
+    public function count(): int;
     /**
      * @param T $value
      */
@@ -69,4 +85,12 @@ interface IHashTable
     public function clear(): void;
 
     public function reset(): void;
+
+    /**
+     * Doubles the capacity and re-buckets every existing value against it.
+     *
+     * Called automatically once the load factor exceeds 0.7; also callable
+     * directly to grow the table pre-emptively.
+     */
+    public function resize(): void;
 }

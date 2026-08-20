@@ -3,6 +3,7 @@
 namespace Tests\Unit\DataStructure\HashTabe;
 
 use InvalidArgumentException;
+use OutOfBoundsException;
 use PHPUnit\Framework\TestCase;
 use Zack\PhpDsAlgo\Contracts\IHashTable;
 use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
@@ -623,5 +624,101 @@ class HashTableTest extends TestCase
         $table->insert(1.0);
 
         $this->assertEqualsCanonicalizing([1, '1', 1.0], $table->getAllValues());
+    }
+
+    public function testHasValueTreatsNegativeZeroAsEqualToPositiveZero(): void
+    {
+        // Regression test: `-0.0 === 0.0` is true in PHP (the comparison
+        // this class uses for equality), but serialize(-0.0) and
+        // serialize(0.0) produce different strings ("d:-0;" vs "d:0;").
+        // Without normalizing -0.0 before hashing, the two values would
+        // land in different buckets and hasValue(0.0) would incorrectly
+        // report a stored -0.0 as absent.
+        $table = new HashTable();
+        $table->insert(-0.0);
+
+        $this->assertTrue($table->hasValue(0.0));
+        $this->assertTrue($table->hasValue(-0.0));
+    }
+
+    public function testDeleteFindsValueInsertedAsNegativeZero(): void
+    {
+        $table = new HashTable();
+        $table->insert(-0.0);
+
+        $this->assertTrue($table->delete(0.0));
+        $this->assertTrue($table->isEmpty());
+    }
+
+    public function testInsertNegativeZeroAndPositiveZeroLandInTheSameBucket(): void
+    {
+        $table = new HashTable(10);
+
+        $table->insert(-0.0);
+        $table->insert(0.0);
+
+        // Both values land in the same bucket and are tracked as two
+        // separate entries there (duplicates are allowed).
+        $position = $table->getValuePosition(0.0);
+        $this->assertSame(2, count($table->getBucket($position['bucketIndex'])));
+    }
+
+    // --- getBucket out-of-range ---
+
+    public function testGetBucketThrowsForOutOfRangeIndex(): void
+    {
+        $table = new HashTable(4);
+
+        $this->expectException(OutOfBoundsException::class);
+
+        $table->getBucket(4);
+    }
+
+    public function testGetBucketThrowsForNegativeIndex(): void
+    {
+        $table = new HashTable(4);
+
+        $this->expectException(OutOfBoundsException::class);
+
+        $table->getBucket(-1);
+    }
+
+    // --- IteratorAggregate / Countable ---
+
+    public function testForeachYieldsEveryStoredValue(): void
+    {
+        $table = new HashTable();
+        $table->insert('a');
+        $table->insert('b');
+        $table->insert(3);
+
+        $values = [];
+        foreach ($table as $value) {
+            $values[] = $value;
+        }
+
+        $this->assertEqualsCanonicalizing(['a', 'b', 3], $values);
+    }
+
+    public function testForeachOnEmptyTableYieldsNothing(): void
+    {
+        $table = new HashTable();
+
+        $values = [];
+        foreach ($table as $value) {
+            $values[] = $value;
+        }
+
+        $this->assertSame([], $values);
+    }
+
+    public function testCountBuiltinReflectsSize(): void
+    {
+        $table = new HashTable();
+        $table->insert('a');
+        $table->insert('b');
+
+        $this->assertSame(2, count($table));
+        $this->assertSame($table->getSize(), count($table));
     }
 }

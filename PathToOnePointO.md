@@ -9,11 +9,15 @@ _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 2026-08-19 to reflect `MinHeap`/`MaxHeap` landing; updated 2026-08-20 to
 reflect `PriorityQueue`/`PriorityQueueNode`, `DijkstraAlgorithm`, and
 `CHANGELOG.md` landing (tags up to `v0.3.0`); updated again 2026-08-20 to
-reflect `HashTable`/`IHashTable` landing._
+reflect `HashTable`/`IHashTable` landing; updated once more 2026-08-20 to
+reflect `HashMap`/`HashMapNode`/`IHashMap` landing alongside it, plus a bug
+pass on both (`put()`/`get()` contract fixes, `-0.0` hashing fix,
+`resize()`/`getValuePosition()` added to both interfaces,
+`IteratorAggregate`/`Countable` support)._
 
 ## Where it stands today
 
-- 659 tests / 1176 assertions, all green, but **7 PHPUnit deprecations**
+- 736 tests / 1301 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -21,10 +25,11 @@ reflect `HashTable`/`IHashTable` landing._
   binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support),
   `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue` contract, backed by
   either a `MaxHeap` or `MinHeap` per a required `PriorityQueueTypeEnum`
-  constructor argument — value/priority wrapper), `HashTable` (`IHashTable`
-  contract, `src/DataStructure/HashTabe/` — separate chaining, generic over
-  any hashable value via `@template T`, auto-resizes past a 0.7 load factor,
-  100% method/line coverage; see M2 below).
+  constructor argument — value/priority wrapper), `HashTable` and `HashMap`
+  (`IHashTable`/`IHashMap` contracts, `src/DataStructure/HashTabe/` — separate
+  chaining, generic over any hashable value/key via `@template T`/`K, V`,
+  auto-resize past a 0.7 load factor, both implement `IteratorAggregate` and
+  `Countable`, 100% method/line coverage; see M2 below).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -35,8 +40,9 @@ reflect `HashTable`/`IHashTable` landing._
   `GeneralArrayAlgorithms` (hasDuplicates/contains).
 - Docs are already strong: 43KB README, `CONTRIBUTING.md`, `Graph.md`,
   `features.md` (conventions + backlog), `TODO.md` (ranked backlog), and a
-  14-article `articles/` walkthrough series (`00-overview.md` through
-  `13-heap.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md)).
+  15-article `articles/` walkthrough series (`00-overview.md` through
+  `14-hashtable-hashmap.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md)
+  and [`13-heap.md`](articles/13-heap.md)).
 - **No CI** — nothing runs `composer test` on push/PR. No static analysis
   (phpstan/psalm), no linter.
 - Legacy duplicate `src/SortingAlgorithms.php` still shipping alongside the
@@ -130,18 +136,32 @@ item is now done (see below), the rest of this list is still open:
 - [x] **Hash Table / Hash Map** — the single most conspicuous absence for a
       "data structures" library; pick one collision strategy (chaining is the
       simpler fit for this codebase's style) and document the choice.
-      **Done** — `HashTable`/`IHashTable` (`src/DataStructure/HashTabe/`; the
-      folder name is a genuine typo, not one of the intentional
-      `Algorythmes`-style misspellings), separate chaining via `xxh3`-hashed
-      buckets, auto-resize (doubles capacity) once the load factor exceeds
-      0.7. Documented generically (`@template T`, `@implements
-      IHashTable<T>`) — strings hash directly, other scalars/null/arrays/
-      objects via `serialize()`, closures/resources rejected with
-      `InvalidArgumentException`; equality for `hasValue()`/`delete()`/
-      `update()` is always strict `===`, independent of how a value hashes.
-      Tests in `tests/Unit/DataStructure/HashTabe/HashTableTest.php`, 100%
-      method/line coverage, documented in the README under
-      [HashTable](README.md#hashtable).
+      **Done** — both a `HashTable` (hash *set* — values act as their own
+      keys) and a proper key-value `HashMap`/`HashMapNode`, sharing one
+      `src/DataStructure/HashTabe/` folder and hashing approach
+      (`IHashTable`/`IHashMap` contracts; the folder name is a genuine typo,
+      not one of the intentional `Algorythmes`-style misspellings), separate
+      chaining via `xxh3`-hashed buckets, auto-resize (doubles capacity) once
+      the load factor exceeds 0.7. Documented generically (`@template T` /
+      `@template K, V`) — strings hash directly, other scalars/null/arrays/
+      objects via `serialize()` (with `-0.0` canonicalized to `0.0` so it
+      matches PHP's `-0.0 === 0.0`), closures/resources rejected with
+      `InvalidArgumentException` as *keys*/`HashTable` values (a `HashMap`
+      *value* has no such restriction — only keys are hashed); membership
+      checks are always strict `===`, independent of how a value hashes.
+      Both implement `IteratorAggregate`/`Countable` (`foreach`/`count()`).
+      `HashMap::put()` upserts (insert-or-replace); `update()` is the
+      must-already-exist counterpart; `get()` returns `null` for a missing
+      key rather than throwing. A follow-up bug pass fixed `put()`
+      throwing instead of replacing, `get()` throwing instead of returning
+      `null`, and the `-0.0` hashing mismatch, and closed two
+      interface/implementation gaps (`resize()` missing from `IHashTable`,
+      `resize()`/`getValuePosition()` missing from `IHashMap`). Tests in
+      `tests/Unit/DataStructure/HashTabe/{HashTableTest,HashMapTest}.php`,
+      100% method/line coverage on all three classes, documented in the
+      README under [HashTable](README.md#hashtable) and
+      [HashMap](README.md#hashmap), and in
+      [`articles/14-hashtable-hashmap.md`](articles/14-hashtable-hashmap.md).
 - [ ] **Deque** (double-ended queue) — new `IDeque` contract per `TODO.md` #5;
       completes the queue family and gives a real backing for
       `IQueue::isFull()`-style bounded variants later.

@@ -2,7 +2,11 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\HashTabe;
 
+use Countable;
 use InvalidArgumentException;
+use IteratorAggregate;
+use OutOfBoundsException;
+use Traversable;
 use Zack\PhpDsAlgo\Contracts\IHashTable;
 
 /**
@@ -10,7 +14,7 @@ use Zack\PhpDsAlgo\Contracts\IHashTable;
  *
  * @implements IHashTable<T>
  */
-class HashTable implements IHashTable
+class HashTable implements IHashTable, IteratorAggregate, Countable
 {
     /**
      * Array of buckets containing hashed values.
@@ -49,7 +53,7 @@ class HashTable implements IHashTable
     /**
      * Inserts a value into the hash table.
      *
-     * The value is reduced to a hashable string key (see {@see hashKey()}),
+     * The value is reduced to a hashable string key (see {@see serializeKey()}),
      * hashed using PHP's xxh3 hashing algorithm, and mapped to a bucket index.
      *
      * Collisions are handled using separate chaining, meaning
@@ -71,8 +75,8 @@ class HashTable implements IHashTable
         $this->addToBucket($value);
 
 
-        $size = $this->getSize();
-        $loadFactor = $size / $this->capacity;
+        $loadFactor = $this->getLoadFactor();
+
 
         if ($loadFactor > 0.7) {
             $this->resize();
@@ -97,7 +101,7 @@ class HashTable implements IHashTable
      *
      * @throws InvalidArgumentException If the value cannot be hashed.
      */
-    private function hashKey(mixed $value): string
+    private function serializeKey(mixed $value): string
     {
         if (is_string($value)) {
             return $value;
@@ -107,6 +111,15 @@ class HashTable implements IHashTable
             throw new InvalidArgumentException(
                 'Resources cannot be used as hash table values.'
             );
+        }
+
+        if (is_float($value) && $value === 0.0) {
+            // Canonicalize -0.0 to 0.0: `-0.0 === 0.0` is true in PHP (the
+            // comparison this class uses for all equality checks), but
+            // serialize() encodes them differently ("d:-0;" vs "d:0;"),
+            // which would otherwise put them in different buckets and break
+            // hasValue()/delete()/getValuePosition()/update() for one of them.
+            $value = 0.0;
         }
 
         try {
@@ -122,7 +135,7 @@ class HashTable implements IHashTable
     /**
      * Computes the bucket index a value belongs to.
      *
-     * Hashes {@see hashKey()}'s string representation of the value with
+     * Hashes {@see serializeKey()}'s string representation of the value with
      * xxh3, takes the first 8 hex characters as an integer, and reduces it
      * modulo the current capacity.
      *
@@ -132,7 +145,7 @@ class HashTable implements IHashTable
      */
     private function tableHash(mixed $value): int
     {
-        $hash = hash('xxh3', $this->hashKey($value));
+        $hash = hash('xxh3', $this->serializeKey($value));
 
         // Convert the hexadecimal hash into an integer.
         $hashInteger = hexdec(substr($hash, 0, 8));
@@ -401,14 +414,18 @@ class HashTable implements IHashTable
      * may have gaps if a value in that bucket was previously removed via
      * {@see delete()}.
      *
-     * @throws \TypeError If `$bucketIndex` is outside `0` .. `getCapacity() - 1`
-     *  (an undefined bucket offset resolves to null, which violates this
-     *  method's `array` return type).
+     * @throws OutOfBoundsException If `$bucketIndex` is outside
+     *  `0` .. `getCapacity() - 1`.
      *
      * @return array<int, T>
      */
     public function getBucket(int $bucketIndex): array
     {
+        if (!isset($this->table[$bucketIndex])) {
+            throw new OutOfBoundsException(
+                "Bucket index {$bucketIndex} does not exist."
+            );
+        }
         return $this->table[$bucketIndex];
     }
 
@@ -429,5 +446,22 @@ class HashTable implements IHashTable
     public function isEmpty(): bool
     {
         return $this->getSize() == 0;
+    }
+
+    /**
+     * @return Traversable<int, T> Every stored value, in the same order as
+     *  {@see getAllValues()} — enables `foreach ($table as $value)`.
+     */
+    public function getIterator(): Traversable
+    {
+        yield from $this->getAllValues();
+    }
+
+    /**
+     * Alias for {@see getSize()}, wired to PHP's `count()` via `Countable`.
+     */
+    public function count(): int
+    {
+        return $this->getSize();
     }
 }

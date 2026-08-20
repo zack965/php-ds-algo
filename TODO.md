@@ -35,11 +35,24 @@ contracts, test layout).
   `findShortestPath()` are untested; see `articles/12-dijkstra.md`'s "Known gap" section.
 - `HashTable` (`src/DataStructure/HashTabe/`, `IHashTable` contract — note the folder is
   `HashTabe`, a genuine typo, not one of the intentional `Algorythmes`-style misspellings) —
-  separate-chaining hash table, generic over any hashable value (`@template T`; strings hash
-  directly, other scalars/null/arrays/objects via `serialize()`, closures/resources rejected
-  with `InvalidArgumentException`). No static factories, construct with `new HashTable(int
-  $capacity = 10)`. Mutable, auto-resizes (doubles capacity) once load factor exceeds 0.7.
-  100% method/line coverage.
+  separate-chaining hash table (really a hash *set*, since values act as their own keys),
+  generic over any hashable value (`@template T`; strings hash directly, other
+  scalars/null/arrays/objects via `serialize()`, `-0.0` canonicalized to `0.0` so it matches
+  `0.0` per PHP's `===`, closures/resources rejected with `InvalidArgumentException`). No
+  static factories, construct with `new HashTable(int $capacity = 10)`. Mutable,
+  auto-resizes (doubles capacity) once load factor exceeds 0.7. Implements
+  `IteratorAggregate`/`Countable` (`foreach`/`count()` work directly). 100% method/line
+  coverage.
+- `HashMap` / `HashMapNode` (`src/DataStructure/HashTabe/`, `IHashMap` contract) — proper
+  key-value map living alongside `HashTable`, sharing its hashing approach but keyed
+  independently of the stored value; entries are `HashMapNode` value objects
+  (`getKey()`/`getValue()`/`setValue()`). `put()` upserts (inserts or replaces in place);
+  `update()` is the must-already-exist counterpart, returning `false` instead of inserting
+  when the key is missing; `get()` returns `null` for a missing key rather than throwing.
+  Same generic-key rules as `HashTable`'s values (values themselves are unrestricted — a
+  closure/resource is a valid *value*, just not a valid *key*). No static factories,
+  construct with `new HashMap(int $capacity = 10)`. Mutable, same auto-resize behavior as
+  `HashTable`, also implements `IteratorAggregate`/`Countable`. 100% method/line coverage.
 
 ## Next up (recommended order)
 
@@ -61,8 +74,8 @@ contracts, test layout).
    Kruskal's / Prim's MST, A*. (Dijkstra is done — see `DijkstraAlgorithm`
    above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
 8. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
-    **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table is done —
-    see `HashTable` above.)
+    **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table and Hash
+    Map are done — see `HashTable`/`HashMap` above.)
 9. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`
