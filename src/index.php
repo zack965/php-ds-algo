@@ -5,6 +5,7 @@ use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
 use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
+use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
 use Zack\PhpDsAlgo\DataStructure\Heap\MaxHeap;
 use Zack\PhpDsAlgo\DataStructure\Heap\MinHeap;
 
@@ -40,16 +41,24 @@ $data = [
 
     ],
 ];
-$graph = new Graph();
+/* $graph = new Graph();
 $graph->buildFromAdjencyList($data);
 $graph->display();
 $dj = new DijkstraAlgorithm();
 $dj->calculateDistances($graph, "A");
 
 $dj->display();
-print_r($dj->findShortestPath("D"));
+print_r($dj->findShortestPath("D")); */
 /*
 print_r( */
 /* $heap = new MinHeap([1, 3, 5, 7, 9, 11, 13]);
 $heap->insert(2); */
 /* print_r($heap->getData()); */
+
+
+
+$hashTable = new HashTable();
+
+$hashTable->insert('apple');
+
+var_dump($hashTable);

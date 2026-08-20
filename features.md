@@ -131,7 +131,30 @@ interface IGraph
     public function bfs(mixed $start): array;
     public function dfs(mixed $start): array;
 }
+
+/**
+ * @template T
+ */
+interface IHashTable
+{
+    /** @param T $value */
+    public function insert(mixed $value): void;
+    /** @param T $value */
+    public function delete(mixed $value): bool;
+    /** @param T $value */
+    public function hasValue(mixed $value): bool;
+    /** @return list<T> */
+    public function getAllValues(): array;
+    public function getSize(): int;
+    public function isEmpty(): bool;
+    public function clear(): void;
+}
 ```
+
+`HashTable` (`src/DataStructure/HashTabe/`, implements the full `IHashTable` shown above) is the
+first structure in this repo documented with a real `@template T` PHPDoc generic — PHP has no
+runtime generics, so parameters/returns stay `mixed` in code and `T` only in docblocks. Follow
+this pattern for any future structure that shouldn't be pinned to one value type.
 
 ## 3. Missing data structures (backlog)
 
@@ -148,7 +171,6 @@ Not yet started:
 - **Binary Search Tree**
 - **Balanced trees**: AVL tree, Red-Black tree
 - **Trie** (prefix tree)
-- **Hash Table / Hash Map** (with a chosen collision strategy — chaining vs open addressing)
 - **Graph** (adjacency list and adjacency matrix, directed/undirected, weighted/unweighted)
 - **Disjoint Set / Union-Find**
 - **Skip List**

@@ -1,7 +1,7 @@
 # TODO
 
 Backlog of what's actually left to implement, ordered smallest-effort-first.
-Reconciled against `src/` as of 2026-08-19 — see `features.md` for conventions
+Reconciled against `src/` as of 2026-08-20 — see `features.md` for conventions
 each new structure/algorithm must follow (immutable style, `ErrorMessages`,
 contracts, test layout).
 
@@ -33,6 +33,13 @@ contracts, test layout).
   `calculateDistances()`, then `findShortestPath()`/`display()`), unlike the rest of `Algorithmes/`.
   Method coverage is currently 2/5 — `display()` and a couple of branches in `calculateDistances()`/
   `findShortestPath()` are untested; see `articles/12-dijkstra.md`'s "Known gap" section.
+- `HashTable` (`src/DataStructure/HashTabe/`, `IHashTable` contract — note the folder is
+  `HashTabe`, a genuine typo, not one of the intentional `Algorythmes`-style misspellings) —
+  separate-chaining hash table, generic over any hashable value (`@template T`; strings hash
+  directly, other scalars/null/arrays/objects via `serialize()`, closures/resources rejected
+  with `InvalidArgumentException`). No static factories, construct with `new HashTable(int
+  $capacity = 10)`. Mutable, auto-resizes (doubles capacity) once load factor exceeds 0.7.
+  100% method/line coverage.
 
 ## Next up (recommended order)
 
@@ -53,9 +60,9 @@ contracts, test layout).
    `GraphDirectedCycleDetector`), topological sort, Bellman-Ford,
    Kruskal's / Prim's MST, A*. (Dijkstra is done — see `DijkstraAlgorithm`
    above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
-8. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
-    addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
-    **Segment Tree** / **Fenwick Tree**.
+8. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
+    **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table is done —
+    see `HashTable` above.)
 9. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`

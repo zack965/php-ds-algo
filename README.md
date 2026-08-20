@@ -15,6 +15,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [Graph](#graph)
   - [Heap (MinHeap / MaxHeap)](#heap-minheap--maxheap)
   - [PriorityQueue](#priorityqueue)
+  - [HashTable](#hashtable)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
@@ -74,7 +75,7 @@ echo implode(', ', $sorted); // 1, 2, 3, 4, 5
 
 ## Data Structures
 
-All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), and `PriorityQueue` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s and `PriorityQueue`'s `insert()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap) and [PriorityQueue](#priorityqueue) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
+All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), `PriorityQueue`, and `HashTable` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s, `PriorityQueue`'s, and `HashTable`'s `insert()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap), [PriorityQueue](#priorityqueue), and [HashTable](#hashtable) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
 
 ### SingleLinkedList
 
@@ -539,6 +540,74 @@ $queue->insertMany([
 
 ---
 
+### HashTable
+
+`Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable` — implements `IHashTable`. A bucketed hash table using **separate chaining** for collisions. **Mutable**, like `MinHeap`/`MaxHeap`/`PriorityQueue` — `insert()`/`delete()`/`update()`/`clear()`/`reset()`/`resize()` all change the table in place and return `void` (or `bool` for the ones that report whether they found a match) rather than a new instance. **No static factories** — construct directly with `new HashTable(int $capacity = 10)`; `$capacity <= 0` throws `InvalidArgumentException`.
+
+```php
+use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
+
+$table = new HashTable(); // capacity defaults to 10
+
+$table->insert('apple');
+$table->insert(42);
+$table->insert(['id' => 1]);
+
+$table->hasValue('apple'); // true
+$table->hasValue('missing'); // false
+
+$table->delete('apple');   // true — removed
+$table->update(42, 43);    // true — 42 replaced by 43
+
+$table->getSize();         // current element count
+$table->getCapacity();     // current bucket count
+$table->getLoadFactor();   // getSize() / getCapacity()
+$table->isEmpty();         // bool
+```
+
+`HashTable` is documented generically (`@template T` in its PHPDoc, `@implements IHashTable<T>`) since PHP has no runtime generics — every method is typed `mixed` in code but annotated `T` for static analysis, so a single instance can hold any mix of hashable types, not just strings.
+
+#### What counts as "hashable"
+
+A value is placed into a bucket by reducing it to a string key and hashing that with PHP's `xxh3` algorithm, then reducing modulo the current capacity:
+
+- **Strings** are used directly (no conversion overhead).
+- **Other scalars, `null`, arrays, and objects** are reduced via `serialize()`.
+- **Closures and resources** have no stable value representation and are rejected — `insert()`, `hasValue()`, `delete()`, `getValuePosition()`, and `update()` all throw `InvalidArgumentException` if passed one.
+
+The hash key only decides *which bucket* a value lands in — actual membership checks (`hasValue()`, `delete()`, `getValuePosition()`, `update()`) always compare candidates with strict `===`. That matters for objects in particular: two distinct object instances with identical properties serialize to the same key (same bucket, exercising the chaining path) but are **not** `===`-equal, so `hasValue()` correctly reports one as present and the other as absent even though they'd land in the same bucket:
+
+```php
+$a = new stdClass(); $a->name = 'same';
+$b = new stdClass(); $b->name = 'same'; // same bucket as $a, but a different instance
+
+$table->insert($a);
+$table->hasValue($a); // true
+$table->hasValue($b); // false — not the same instance
+```
+
+`===` also means `1`, `'1'`, and `true` are tracked as distinct entries even though they may share a bucket.
+
+#### Inspecting buckets
+
+```php
+$table->getAllValues();   // list<T> — every stored value, flattened across all buckets
+$table->getBuckets();     // list<int> — every bucket index, i.e. 0..getCapacity()-1
+$table->getBucket(3);     // array<int, T> — raw contents of bucket 3 (throws TypeError if out of range)
+$table->getValuePosition('apple'); // ['bucketIndex' => ..., 'itemIndex' => ...] or false
+$table->getValue('apple'); // returns 'apple' if present, null otherwise (values are their own keys)
+```
+
+`getBucket()`'s result isn't guaranteed to be a contiguous 0-based list — `delete()` removes an entry with `unset()` rather than reindexing, so a bucket's keys can have gaps after a deletion.
+
+#### Resizing
+
+`insert()` automatically doubles the capacity (via `resize()`) once the load factor exceeds `0.7`, rebuilding the table and re-bucketing every existing value against the new capacity. `resize()` is also public, so you can grow the table pre-emptively; `clear()` empties all buckets but keeps the current capacity, while `reset()` empties the table **and** resets capacity back to the default of 10.
+
+> **Note:** the folder/namespace is `HashTabe`, not `HashTable` — `src/DataStructure/HashTabe/HashTable.php`. This is a genuine typo (not one of the intentional `Algorythmes`/`Alogorthme` misspellings that `features.md` scopes to the algorithms area), but PSR-4 resolution depends on it, so match it exactly when importing: `use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;`.
+
+---
+
 ## Algorithms
 
 Algorithm classes live under `src/Algorithmes/` and are static-method utility classes operating on plain PHP arrays — fully decoupled from the data structures above.
@@ -705,6 +774,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | Exception | Thrown by | Notes |
 |---|---|---|
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
+| `InvalidArgumentException` (SPL) | `HashTable`'s constructor (`$capacity <= 0`); `insert()`/`hasValue()`/`delete()`/`getValuePosition()`/`update()`/`getValue()` when given an unhashable value (a closure or a resource) | See [What counts as "hashable"](#hashtable) |
 | `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `RuntimeException` (SPL) | `DijkstraAlgorithm::calculateDistances()` (unknown source node, or a non-numeric/unweighted edge weight hit mid-relaxation); `DijkstraAlgorithm::findShortestPath()` (unknown target node) | See [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm) |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
@@ -734,6 +804,7 @@ A few behaviors worth knowing before you rely on them — none of these are "wro
 - **A handful of defensive null/false guards are unreachable in practice.** `Graph::removeNode()`, and `insert()`/`removeAt()`/`get()` on both linked lists, each have a redundant guard clause that's already preceded by an equivalent bounds check earlier in the same method — under the classes' normal invariants they can never actually trigger. Harmless, just dead code.
 - **`ArraySearchAlogorthme::interpolationSearchRecursive()` computes its estimated position with float division** and uses the (possibly fractional) result both as an array index and as a recursive `int` argument — PHP emits an implicit float-to-int-conversion deprecation notice in that case. It still returns the correct result; it's just noisy.
 - **`Graph::getAdjencyMetrix()` and `Graph::printAdjacencyMatrix()` spell "adjacency"/"matrix" inconsistently** — the getter matches the existing `getAdjency()` typo (`Adjency`, `Metrix`), while the printer spells both correctly. Same method pair, two different spellings; match whichever one you're calling.
+- **`HashTable::getBucket()` throws `TypeError`, not `InvalidArgumentException`, for an out-of-range index.** An undefined bucket offset resolves to `null` internally, which then violates the method's `array` return type — a different failure mode than every other bounds check in this library.
 - **`MinHeap`/`MaxHeap` custom comparators must return exactly `-1`/`0`/`1`.** `heapifyDown()`'s child-selection compares the comparator's result against the literal `-1`, not its sign — a comparator written in the common `fn($a, $b) => $a - $b` style (returning an arbitrary signed magnitude) will misorder the heap once `extract()` or the array constructor runs. Always use `<=>` in a heap comparator. See [Heap](#heap-minheap--maxheap) above.
 
 ---
@@ -758,14 +829,15 @@ src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
 │   └── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable
 ├── DataStructure/
 │   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
 │   ├── Stack/                 # ArrayStack
 │   ├── Queue/                 # Queue
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
-│   └── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
+│   ├── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
+│   └── HashTabe/                # HashTable (folder name is a typo — see the HashTable section above)
 ├── enums/                     # PriorityQueueTypeEnum
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
 ├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
@@ -777,7 +849,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
+See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set (a hash table now exists, see [HashTable](#hashtable)).
 
 ## License
 

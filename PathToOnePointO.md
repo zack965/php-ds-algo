@@ -8,11 +8,12 @@ means for 1.0 and sequences the smallest set of work that gets there.
 _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 2026-08-19 to reflect `MinHeap`/`MaxHeap` landing; updated 2026-08-20 to
 reflect `PriorityQueue`/`PriorityQueueNode`, `DijkstraAlgorithm`, and
-`CHANGELOG.md` landing (tags up to `v0.3.0`)._
+`CHANGELOG.md` landing (tags up to `v0.3.0`); updated again 2026-08-20 to
+reflect `HashTable`/`IHashTable` landing._
 
 ## Where it stands today
 
-- 601 tests / 1088 assertions, all green, but **7 PHPUnit deprecations**
+- 659 tests / 1176 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -20,7 +21,10 @@ reflect `PriorityQueue`/`PriorityQueueNode`, `DijkstraAlgorithm`, and
   binary heap over `AbstractBinaryHeap` + `IHeap`, custom-comparator support),
   `PriorityQueue`/`PriorityQueueNode` (`IPriorityQueue` contract, backed by
   either a `MaxHeap` or `MinHeap` per a required `PriorityQueueTypeEnum`
-  constructor argument — value/priority wrapper).
+  constructor argument — value/priority wrapper), `HashTable` (`IHashTable`
+  contract, `src/DataStructure/HashTabe/` — separate chaining, generic over
+  any hashable value via `@template T`, auto-resizes past a 0.7 load factor,
+  100% method/line coverage; see M2 below).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -44,8 +48,8 @@ reflect `PriorityQueue`/`PriorityQueueNode`, `DijkstraAlgorithm`, and
 
 This lines up with `rating.md`'s self-assessment (8/10): the gap to 1.0 is
 **tooling and API-stability discipline**, not raw feature count. `TODO.md`'s
-backlog (tries, hash tables, AVL/Red-Black trees, skip lists, segment trees,
-most of DP/string/backtracking) is effectively open-ended — treating "1.0" as
+backlog (tries, AVL/Red-Black trees, skip lists, segment trees, most of
+DP/string/backtracking) is effectively open-ended — treating "1.0" as
 "implement everything in the backlog" means it never ships. Scope it instead.
 
 ## What "1.0" should mean here
@@ -64,8 +68,8 @@ Concretely:
    structure was linear (lists/stack/queue) plus one graph, and every
    algorithm family except Levenshtein was array sorting/searching: no tree,
    no heap, no hash table, no shortest-path algorithm, no DP beyond one
-   edit-distance example, no string-matching algorithm. Heap and shortest-path
-   (Dijkstra) are now closed (see M2 below); tree, hash table, deque, heap
+   edit-distance example, no string-matching algorithm. Heap, shortest-path
+   (Dijkstra), and hash table are now closed (see M2 below); tree, deque, heap
    sort, topological sort, DP, and string-matching remain gaps. Those are the
    structures/algorithms anyone evaluating a "data structures and algorithms"
    library checks for first — see the curated list in M2 below.
@@ -123,10 +127,21 @@ item is now done (see below), the rest of this list is still open:
       constructor argument — value/priority wrapper) on top, tests in
       `tests/Unit/DataStructure/Heap/`, documented in the README and
       `articles/13-heap.md`. Heap sort itself (below) is still open.
-- [ ] **Hash Table / Hash Map** — the single most conspicuous absence for a
+- [x] **Hash Table / Hash Map** — the single most conspicuous absence for a
       "data structures" library; pick one collision strategy (chaining is the
       simpler fit for this codebase's style) and document the choice.
-      `src/DataStructure/HashTable/`.
+      **Done** — `HashTable`/`IHashTable` (`src/DataStructure/HashTabe/`; the
+      folder name is a genuine typo, not one of the intentional
+      `Algorythmes`-style misspellings), separate chaining via `xxh3`-hashed
+      buckets, auto-resize (doubles capacity) once the load factor exceeds
+      0.7. Documented generically (`@template T`, `@implements
+      IHashTable<T>`) — strings hash directly, other scalars/null/arrays/
+      objects via `serialize()`, closures/resources rejected with
+      `InvalidArgumentException`; equality for `hasValue()`/`delete()`/
+      `update()` is always strict `===`, independent of how a value hashes.
+      Tests in `tests/Unit/DataStructure/HashTabe/HashTableTest.php`, 100%
+      method/line coverage, documented in the README under
+      [HashTable](README.md#hashtable).
 - [ ] **Deque** (double-ended queue) — new `IDeque` contract per `TODO.md` #5;
       completes the queue family and gives a real backing for
       `IQueue::isFull()`-style bounded variants later.
@@ -208,7 +223,8 @@ them — they remain valid, ranked backlog for *after* 1.0 ships:
   — topological sort stays in M2 (still open); Dijkstra was in M2 and is
   now done, see above.
 - Trie, Union-Find/Disjoint Set, AVL tree, Red-Black tree, Skip List,
-  Segment Tree/Fenwick Tree — Hash Table moved into M2.
+  Segment Tree/Fenwick Tree — Hash Table was moved into M2 and is now done,
+  see above.
 - Remainder of the DP family (memoized/tabulated Fibonacci, LIS, coin change
   — one of knapsack/LCS moved into M2), remainder of string algorithms
   (Rabin-Karp, palindrome family — KMP moved into M2), backtracking
