@@ -6,11 +6,12 @@ backlog item already tracked in `TODO.md`/`features.md`; it defines what "done"
 means for 1.0 and sequences the smallest set of work that gets there.
 
 _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
-2026-08-19 to reflect `MinHeap`/`MaxHeap` landing._
+2026-08-19 to reflect `MinHeap`/`MaxHeap` landing; updated 2026-08-20 to
+reflect `PriorityQueue`/`PriorityQueueNode` and `DijkstraAlgorithm` landing._
 
 ## Where it stands today
 
-- 559 tests / 1019 assertions, all green, but **7 PHPUnit deprecations**
+- 601 tests / 1088 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -22,11 +23,15 @@ _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
-  distance, Dijkstra's shortest path (`DijkstraAlgorithm`, built on
-  `PriorityQueue` — see M2 below), `GeneralArrayAlgorithms`
-  (hasDuplicates/contains).
-- Docs are already strong: 29KB README, `CONTRIBUTING.md`, `Graph.md`,
-  `features.md` (conventions + backlog), `TODO.md` (ranked backlog).
+  distance, Dijkstra's shortest path (`DijkstraAlgorithm`/
+  `DijkstraAlgorithmDistance`, `src/Algorithmes/DijkstraAlgorithm/`, stateful
+  — the one exception to the static-utility shape the rest of `Algorithmes/`
+  uses — built on `PriorityQueue(PriorityQueueTypeEnum::Min)`, see M2 below),
+  `GeneralArrayAlgorithms` (hasDuplicates/contains).
+- Docs are already strong: 43KB README, `CONTRIBUTING.md`, `Graph.md`,
+  `features.md` (conventions + backlog), `TODO.md` (ranked backlog), and a
+  14-article `articles/` walkthrough series (`00-overview.md` through
+  `13-heap.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md)).
 - **No CI** — nothing runs `composer test` on push/PR. No static analysis
   (phpstan/psalm), no linter.
 - Legacy duplicate `src/SortingAlgorithms.php` still shipping alongside the
@@ -55,10 +60,11 @@ Concretely:
    structure was linear (lists/stack/queue) plus one graph, and every
    algorithm family except Levenshtein was array sorting/searching: no tree,
    no heap, no hash table, no shortest-path algorithm, no DP beyond one
-   edit-distance example, no string-matching algorithm. Heap is now closed
-   (see M2 below); the rest remain gaps. Those are the structures/algorithms anyone
-   evaluating a "data structures and algorithms" library checks for first —
-   see the curated list in M2 below.
+   edit-distance example, no string-matching algorithm. Heap and shortest-path
+   (Dijkstra) are now closed (see M2 below); tree, hash table, deque, heap
+   sort, topological sort, DP, and string-matching remain gaps. Those are the
+   structures/algorithms anyone evaluating a "data structures and algorithms"
+   library checks for first — see the curated list in M2 below.
 6. **A documented BC/versioning policy** (`CHANGELOG.md` + a stated semver
    commitment in the README) so 1.0 actually means something to consumers.
 7. Everything past the M2 list (tries, balanced trees, skip lists,
@@ -125,11 +131,21 @@ item is now done (see below), the rest of this list is still open:
 
 - [ ] **Heap sort** — natural pairing now that the heap exists; extends
       `ArraySortAlgorythmes`.
-- [ ] **Dijkstra's shortest path** and **topological sort** on `Graph` — BFS/DFS
-      and cycle detection exist but the library can't answer "shortest path"
-      or "valid build order," which are the two questions people reach for a
-      graph library to answer. Dijkstra can now build directly on `MinHeap`
-      for its priority queue, its second real use.
+- [x] **Dijkstra's shortest path** on `Graph` — BFS/DFS and cycle detection
+      exist but couldn't answer "shortest path," one of the two questions
+      people reach for a graph library to answer. **Done** —
+      `DijkstraAlgorithm`/`DijkstraAlgorithmDistance`
+      (`src/Algorithmes/DijkstraAlgorithm/`), built on
+      `PriorityQueue(PriorityQueueTypeEnum::Min)` (its second real use after
+      the heap itself), stateful unlike the rest of `Algorithmes/` (construct,
+      call `calculateDistances()`, then `findShortestPath()`/`display()`),
+      documented in the README and
+      [`articles/12-dijkstra.md`](articles/12-dijkstra.md). Method coverage
+      is 2/5 (40%) — `display()` and a couple of branches in
+      `calculateDistances()`/`findShortestPath()` are untested; folded into
+      the M1 coverage bullet above.
+- [ ] **Topological sort** on `Graph` — still open; "valid build order" is
+      the other question people reach for a graph library to answer.
 - [ ] **One DP algorithm beyond edit distance** — 0/1 knapsack or LCS,
       whichever is smaller to implement well; proves DP is a supported
       category, not a one-off next to `LevenshteinDistance`.
@@ -182,7 +198,8 @@ them — they remain valid, ranked backlog for *after* 1.0 ships:
 - Additional sorts (shell, counting, radix, bucket) — heap sort moved into M2.
 - Dynamic/variable-size sliding window, monotonic-deque min/max window.
 - Undirected-graph cycle detection, Bellman-Ford, Kruskal's/Prim's MST, A*
-  — Dijkstra and topological sort moved into M2.
+  — topological sort stays in M2 (still open); Dijkstra was in M2 and is
+  now done, see above.
 - Trie, Union-Find/Disjoint Set, AVL tree, Red-Black tree, Skip List,
   Segment Tree/Fenwick Tree — Hash Table moved into M2.
 - Remainder of the DP family (memoized/tabulated Fibonacci, LIS, coin change
