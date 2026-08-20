@@ -7,7 +7,8 @@ means for 1.0 and sequences the smallest set of work that gets there.
 
 _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 2026-08-19 to reflect `MinHeap`/`MaxHeap` landing; updated 2026-08-20 to
-reflect `PriorityQueue`/`PriorityQueueNode` and `DijkstraAlgorithm` landing._
+reflect `PriorityQueue`/`PriorityQueueNode`, `DijkstraAlgorithm`, and
+`CHANGELOG.md` landing (tags up to `v0.3.0`)._
 
 ## Where it stands today
 
@@ -36,7 +37,10 @@ reflect `PriorityQueue`/`PriorityQueueNode` and `DijkstraAlgorithm` landing._
   (phpstan/psalm), no linter.
 - Legacy duplicate `src/SortingAlgorithms.php` still shipping alongside the
   canonical `Algorithmes\ArraySortAlgorythmes`.
-- No `CHANGELOG.md`, no explicit semver/BC policy.
+- `CHANGELOG.md` now exists (Keep a Changelog format, backfilled through
+  `v0.1.0`, kept in sync with the per-version files under `changelogs/` —
+  see M3), but there's still no explicit semver/BC policy stated in the
+  README.
 
 This lines up with `rating.md`'s self-assessment (8/10): the gap to 1.0 is
 **tooling and API-stability discipline**, not raw feature count. `TODO.md`'s
@@ -163,9 +167,12 @@ those in the `v1.x` roadmap below.
 
 ### M3 — API stability contract (blocking)
 
-- [ ] Add `CHANGELOG.md` (Keep a Changelog format), backfill entries for
+- [x] Add `CHANGELOG.md` (Keep a Changelog format), backfill entries for
       `v0.1.0`/`v0.1.1`/`v0.2.0` from `git log`, going forward every release
-      gets an entry.
+      gets an entry. **Done** — root `CHANGELOG.md` now covers `v0.1.0`
+      through `v0.3.0` as a single aggregate file, kept in sync with the
+      existing `changelogs/*.md` per-version files (still live, gets a new
+      file each release too).
 - [ ] State a semver policy in the README: what counts as breaking for a
       library like this (removing/renaming a public method, changing a
       contract's shape, changing thrown-exception types) vs. non-breaking
