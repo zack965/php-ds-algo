@@ -1,7 +1,7 @@
 <?php
 
 use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm;
+use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
 use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
@@ -41,9 +41,15 @@ $data = [
     ],
 ];
 $graph = new Graph();
-/* $graph->buildFromAdjencyList($data);
+$graph->buildFromAdjencyList($data);
 $graph->display();
-print_r(DijkstraAlgorithm::ShortestPath($graph, "A")); */
-$heap = new MinHeap([1, 3, 5, 7, 9, 11, 13]);
-$heap->insert(2);
-print_r($heap->getData());
+$dj = new DijkstraAlgorithm();
+$dj->calculateDistances($graph, "A");
+
+$dj->display();
+print_r($dj->findShortestPath("D"));
+/*
+print_r( */
+/* $heap = new MinHeap([1, 3, 5, 7, 9, 11, 13]);
+$heap->insert(2); */
+/* print_r($heap->getData()); */

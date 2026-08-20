@@ -22,7 +22,9 @@ _Written 2026-08-08 against commit `74aecb3` (tags up to `v0.2.0`); updated
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
-  distance, `GeneralArrayAlgorithms` (hasDuplicates/contains).
+  distance, Dijkstra's shortest path (`DijkstraAlgorithm`, built on
+  `PriorityQueue` — see M2 below), `GeneralArrayAlgorithms`
+  (hasDuplicates/contains).
 - Docs are already strong: 29KB README, `CONTRIBUTING.md`, `Graph.md`,
   `features.md` (conventions + backlog), `TODO.md` (ranked backlog).
 - **No CI** — nothing runs `composer test` on push/PR. No static analysis
@@ -79,7 +81,10 @@ Concretely:
 - [ ] Add `phpstan` (or `psalm`) at a reasonable level, wire it into CI.
 - [ ] Close the method-coverage gaps flagged in the last coverage run:
       `GraphDirectedCycleDetector` (50% methods), `DoublyLinkedList` /
-      `SingleLinkedList` (~90% methods), `LevenshteinDistance` (88.9% methods).
+      `SingleLinkedList` (~90% methods), `LevenshteinDistance` (88.9% methods),
+      `DijkstraAlgorithm` (40% methods — `display()` untested, plus an
+      untested branch each in `calculateDistances()` and
+      `findShortestPath()`; see `articles/12-dijkstra.md`).
 
 ### M2 — Feature completeness (blocking)
 

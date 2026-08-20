@@ -28,6 +28,11 @@ contracts, test layout).
 - Graph cycle detection: directed (`GraphDirectedCycleDetector`)
 - `GeneralArrayAlgorithms`: `hasDuplicates`, `contains`
 - `LevenshteinDistance` (edit distance, Wagner-Fischer DP, with reconstructed optimal path)
+- `DijkstraAlgorithm` / `DijkstraAlgorithmDistance` (`src/Algorithmes/DijkstraAlgorithm/`) — single-source
+  shortest paths, backed by `PriorityQueue(PriorityQueueTypeEnum::Min)`. Stateful (construct, call
+  `calculateDistances()`, then `findShortestPath()`/`display()`), unlike the rest of `Algorithmes/`.
+  Method coverage is currently 2/5 — `display()` and a couple of branches in `calculateDistances()`/
+  `findShortestPath()` are untested; see `articles/12-dijkstra.md`'s "Known gap" section.
 
 ## Next up (recommended order)
 
@@ -45,10 +50,9 @@ contracts, test layout).
    traversals, per `features.md` §2).
 7. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
-   `GraphDirectedCycleDetector`), topological sort, Dijkstra, Bellman-Ford,
-   Kruskal's / Prim's MST, A*. Dijkstra can now build on the `MinHeap` (or
-   the new `PriorityQueue` constructed with `PriorityQueueTypeEnum::Min`)
-   that just landed for its priority queue.
+   `GraphDirectedCycleDetector`), topological sort, Bellman-Ford,
+   Kruskal's / Prim's MST, A*. (Dijkstra is done — see `DijkstraAlgorithm`
+   above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
 8. **Trie**, **Union-Find / Disjoint Set**, **Hash Table** (chaining or open
     addressing), **AVL tree**, **Red-Black tree**, **Skip List**,
     **Segment Tree** / **Fenwick Tree**.

@@ -21,6 +21,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [Sliding Window — SlidingWindow](#sliding-window--slidingwindow)
   - [Edit Distance — LevenshteinDistance](#edit-distance--levenshteindistance)
   - [Graph Traversal — BFS / DFS](#graph-traversal--bfs--dfs)
+  - [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)
   - [General Array Helpers — GeneralArrayAlgorithms](#general-array-helpers--generalarrayalgorithms)
   - [Low-level Helpers — AlgorythmesGlobalHelpers](#low-level-helpers--algorythmesglobalhelpers)
 - [Exceptions & Error Handling](#exceptions--error-handling)
@@ -656,6 +657,24 @@ GraphDepthFirstTraversal::traverse($graph, 'A');
 
 DFS is stack-based (iterative, not recursive) — for a node with neighbors `[B, C]`, `C` is explored before `B` (last-pushed, first-popped).
 
+### Shortest Path — `DijkstraAlgorithm`
+
+`Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm` — single-source shortest paths on a weighted `Graph`, using a `PriorityQueue(PriorityQueueTypeEnum::Min)` internally. Unlike every other class under `Algorithmes/`, it's **stateful** — construct one, call `calculateDistances()`, then query the result off the same instance.
+
+```php
+use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
+
+$dijkstra = new DijkstraAlgorithm();
+$dijkstra->calculateDistances($graph, 'A');   // populates internal per-node distance/predecessor state
+
+$dijkstra->findShortestPath('D'); // ['D', 'B', 'C', 'A'] — target-to-source order, reverse it yourself
+$dijkstra->display();             // pretty-prints every node's distance/visited/previous to stdout
+```
+
+`calculateDistances(IGraph $graph, int|string $sourceNode)` throws `RuntimeException("No node with this value")` if `$sourceNode` isn't in the graph, and `RuntimeException("the weight is not a numeric value")` the moment it relaxes across an edge with a `null` (unweighted) weight — checked lazily per edge as the algorithm reaches it, **not** via `$graph->isWeighted()` up front. `findShortestPath(int|string $targetNode)` throws `RuntimeException("Target node does not exist")` if `$targetNode` was never in the graph the last `calculateDistances()` call computed against; call `calculateDistances()` first or it always throws. An unreachable node's path is just itself (single-element array).
+
+`MinHeap`/`PriorityQueue` have no `decreaseKey()`, so relaxation re-inserts a fresh, cheaper queue entry for a node instead of updating one in place; stale entries for an already-finalized node are skipped lazily when popped. See [`articles/12-dijkstra.md`](articles/12-dijkstra.md) for the full walkthrough, including the current test-coverage gaps (`display()` and a couple of branches are untested as of this writing).
+
 ### General Array Helpers — `GeneralArrayAlgorithms`
 
 `Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms`
@@ -687,6 +706,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 |---|---|---|
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
 | `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
+| `RuntimeException` (SPL) | `DijkstraAlgorithm::calculateDistances()` (unknown source node, or a non-numeric/unweighted edge weight hit mid-relaxation); `DijkstraAlgorithm::findShortestPath()` (unknown target node) | See [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm) |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
 | `Zack\PhpDsAlgo\Exception\DuplicateNodeException` | `Graph::addNode()` on a duplicate | Built via `DuplicateNodeException::nodeDuplicate($value)` |
 | `Zack\PhpDsAlgo\Exception\EdgeNotFoundException` | `Graph::getEdge()` on a missing edge | Built via `EdgeNotFoundException::edgeNotFound($source, $destination)` |
@@ -736,6 +756,7 @@ There is no other linter or static analysis tool configured — `php -l path/to/
 ```
 src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
+│   └── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
 ├── Constants/               # ErrorMessages
 ├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue
 ├── DataStructure/
@@ -756,7 +777,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: graph algorithms (Dijkstra, topological sort, cycle detection, connected components), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
+See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, hash table, AVL/Red-Black trees, trie, disjoint set.
 
 ## License
 
