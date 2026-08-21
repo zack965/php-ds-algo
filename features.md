@@ -168,6 +168,36 @@ interface IHashMap extends IteratorAggregate, Countable
     public function isEmpty(): bool;
     public function clear(): void;
 }
+
+/**
+ * @template T
+ */
+interface ISet extends Countable, IteratorAggregate
+{
+    /** @param T $value */
+    public function add(mixed $value): bool;
+    /** @param T $value */
+    public function contains(mixed $value): bool;
+    /** @param T $value */
+    public function remove(mixed $value): bool;
+    public function clear(): void;
+    public function isEmpty(): bool;
+    /** @return list<T> */
+    public function getAll(): array;
+    public function count(): int;
+    /** @param ISet<T> $other, @return ISet<T> */
+    public function union(ISet $other): ISet;
+    /** @param ISet<T> $other, @return ISet<T> */
+    public function intersection(ISet $other): ISet;
+    /** @param ISet<T> $other, @return ISet<T> */
+    public function difference(ISet $other): ISet;
+    /** @param ISet<T> $other */
+    public function isSubsetOf(ISet $other): bool;
+    /** @param ISet<T> $other */
+    public function isSupersetOf(ISet $other): bool;
+    /** @param ISet<T> $other */
+    public function equals(ISet $other): bool;
+}
 ```
 
 `HashTable` and `HashMap` (`src/DataStructure/HashTabe/`, implementing the full `IHashTable`/
@@ -179,7 +209,16 @@ the *interface* level (not just implement a `getIterator()` method on the class)
 any future iterable structure's contract too, since declaring `getIterator()` without also
 `extends IteratorAggregate` is exactly the trap `IGraph`/`Graph` fell into (see the `Graph`
 gotcha in the README): `foreach` silently iterates zero times through an interface-typed
-reference instead of erroring or calling the method.
+reference instead of erroring or calling the method. `Set` (`src/DataStructure/Set/`,
+`ISet`) follows both conventions too — `@template T`, `extends Countable, IteratorAggregate`
+at the interface level — but is otherwise structurally simpler: array-backed, no hashing, no
+resizing, `O(n)` membership via strict `===` comparison rather than `HashTable`'s
+`O(1)`-amortized bucket lookup. It's also the one structure so far mixing mutable and pure
+method styles on the same class: `add()`/`remove()`/`clear()` mutate in place, but
+`union()`/`intersection()`/`difference()` are pure and return a new instance — follow whichever
+shape actually matches the operation's semantics (a set-algebra result is a new set
+mathematically; an insert/remove is a state change) rather than picking one style for the
+whole class by default.
 
 ## 3. Missing data structures (backlog)
 
@@ -197,7 +236,9 @@ Not yet started:
 - **Balanced trees**: AVL tree, Red-Black tree
 - **Trie** (prefix tree)
 - **Graph** (adjacency list and adjacency matrix, directed/undirected, weighted/unweighted)
-- **Disjoint Set / Union-Find**
+- **Disjoint Set / Union-Find** (find/union-by-rank over partitioned sets — not the same
+  structure as the plain unique-value `Set`/`ISet` that now exists in
+  `src/DataStructure/Set/`)
 - **Skip List**
 - **Segment Tree** / **Fenwick Tree (Binary Indexed Tree)** — range query structures
 

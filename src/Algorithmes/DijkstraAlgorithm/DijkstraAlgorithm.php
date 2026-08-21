@@ -34,7 +34,6 @@ class DijkstraAlgorithm
             $this->distances[(string)$node] = $distanceObj;
         }
     }
-
     public function calculateDistances(IGraph $graph, int|string $sourceNode)
     {
         if (!$graph->hasNode($sourceNode)) {
@@ -116,7 +115,6 @@ class DijkstraAlgorithm
         while (!is_null($node->getPreviousNode())) {
             $previousNode = $node->getPreviousNode();
             $nodes[] = $previousNode;
-            //getValue()
             $node = $this->distances[$previousNode];
         }
         return $nodes;

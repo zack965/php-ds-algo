@@ -13,11 +13,15 @@ reflect `HashTable`/`IHashTable` landing; updated once more 2026-08-20 to
 reflect `HashMap`/`HashMapNode`/`IHashMap` landing alongside it, plus a bug
 pass on both (`put()`/`get()` contract fixes, `-0.0` hashing fix,
 `resize()`/`getValuePosition()` added to both interfaces,
-`IteratorAggregate`/`Countable` support)._
+`IteratorAggregate`/`Countable` support); updated 2026-08-21 to reflect
+`Set`/`ISet` landing (array-backed, no hashing) plus a bug pass on it
+(`contains()`/`remove()` inversion fixes, non-mutating `union()`,
+deduplicating constructor) and a generics pass on
+`GeneralArrayAlgorithms::contains()` (now `mixed`, was `int|string`)._
 
 ## Where it stands today
 
-- 736 tests / 1301 assertions, all green, but **7 PHPUnit deprecations**
+- 784 tests / 1380 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -29,7 +33,14 @@ pass on both (`put()`/`get()` contract fixes, `-0.0` hashing fix,
   (`IHashTable`/`IHashMap` contracts, `src/DataStructure/HashTabe/` — separate
   chaining, generic over any hashable value/key via `@template T`/`K, V`,
   auto-resize past a 0.7 load factor, both implement `IteratorAggregate` and
-  `Countable`, 100% method/line coverage; see M2 below).
+  `Countable`, 100% method/line coverage; see M2 below), and `Set`
+  (`ISet` contract, `src/DataStructure/Set/` — array-backed, no hashing,
+  `O(n)` strict-comparison membership; set-algebra methods
+  `union`/`intersection`/`difference`/`isSubsetOf`/`isSupersetOf`/`equals`,
+  with `union`/`intersection`/`difference` pure and the rest of the class
+  mutable; 100% method/line coverage; not part of the curated M2 list below
+  — a small extra alongside `HashTable`/`HashMap`, see
+  [`articles/15-set.md`](articles/15-set.md)).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -37,12 +48,14 @@ pass on both (`put()`/`get()` contract fixes, `-0.0` hashing fix,
   `DijkstraAlgorithmDistance`, `src/Algorithmes/DijkstraAlgorithm/`, stateful
   — the one exception to the static-utility shape the rest of `Algorithmes/`
   uses — built on `PriorityQueue(PriorityQueueTypeEnum::Min)`, see M2 below),
-  `GeneralArrayAlgorithms` (hasDuplicates/contains).
-- Docs are already strong: 43KB README, `CONTRIBUTING.md`, `Graph.md`,
+  `GeneralArrayAlgorithms` (`hasDuplicates`/`contains`/`remove` — `contains`
+  and `remove` are now documented as fully generic, `mixed`/`@template T`,
+  used internally by `Set`).
+- Docs are already strong: 60KB README, `CONTRIBUTING.md`, `Graph.md`,
   `features.md` (conventions + backlog), `TODO.md` (ranked backlog), and a
-  15-article `articles/` walkthrough series (`00-overview.md` through
-  `14-hashtable-hashmap.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md)
-  and [`13-heap.md`](articles/13-heap.md)).
+  16-article `articles/` walkthrough series (`00-overview.md` through
+  `15-set.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md),
+  [`13-heap.md`](articles/13-heap.md), and [`15-set.md`](articles/15-set.md)).
 - **No CI** — nothing runs `composer test` on push/PR. No static analysis
   (phpstan/psalm), no linter.
 - Legacy duplicate `src/SortingAlgorithms.php` still shipping alongside the
@@ -244,7 +257,8 @@ them — they remain valid, ranked backlog for *after* 1.0 ships:
   now done, see above.
 - Trie, Union-Find/Disjoint Set, AVL tree, Red-Black tree, Skip List,
   Segment Tree/Fenwick Tree — Hash Table was moved into M2 and is now done,
-  see above.
+  see above. (A plain unique-value `Set` also landed outside M2, see above —
+  not the same structure as Union-Find/Disjoint Set, which is still open.)
 - Remainder of the DP family (memoized/tabulated Fibonacci, LIS, coin change
   — one of knapsack/LCS moved into M2), remainder of string algorithms
   (Rabin-Karp, palindrome family — KMP moved into M2), backtracking

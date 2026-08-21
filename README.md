@@ -17,6 +17,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [PriorityQueue](#priorityqueue)
   - [HashTable](#hashtable)
   - [HashMap](#hashmap)
+  - [Set](#set)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
@@ -76,7 +77,7 @@ echo implode(', ', $sorted); // 1, 2, 3, 4, 5
 
 ## Data Structures
 
-All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), `PriorityQueue`, `HashTable`, and `HashMap` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s, `PriorityQueue`'s, `HashTable`'s, and `HashMap`'s `insert()`/`put()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap), [PriorityQueue](#priorityqueue), [HashTable](#hashtable), and [HashMap](#hashmap) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
+All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), `PriorityQueue`, `HashTable`, and `HashMap` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s, `PriorityQueue`'s, `HashTable`'s, and `HashMap`'s `insert()`/`put()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap), [PriorityQueue](#priorityqueue), [HashTable](#hashtable), and [HashMap](#hashmap) below). **`Set` mixes both styles on one class**: `add()`/`remove()`/`clear()` mutate it in place, but `union()`/`intersection()`/`difference()` are pure and always return a **new** `Set`, leaving both operands untouched (see [Set](#set) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
 
 ### SingleLinkedList
 
@@ -682,6 +683,58 @@ Same as `HashTable`: `put()` doubles the capacity (via `resize()`) once a genuin
 
 ---
 
+### Set
+
+`Zack\PhpDsAlgo\DataStructure\Set\Set` — implements `ISet`, `IteratorAggregate`, `Countable`. A plain, array-backed collection of unique values plus set-algebra operations (`union`, `intersection`, `difference`, `isSubsetOf`, `isSupersetOf`, `equals`). Unlike `HashTable`, it does **no hashing** — membership is a linear scan (`O(n)`) using strict (`===`) comparison, so it favors simplicity over lookup speed (see [Set vs. HashTable](articles/15-set.md#set-vs-hashtable-when-to-reach-for-which) in the article for when to reach for which). **Mixes mutable and pure styles on one class**: `add()`/`remove()`/`clear()` mutate in place, but `union()`/`intersection()`/`difference()` never touch either operand and always return a **new** `Set`. No static factories — construct directly with `new Set(array $data = [])`.
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Set\Set;
+
+$set = new Set([1, 2, 2, 3]); // duplicates collapse: [1, 2, 3]
+
+$set->add(4);          // true — added
+$set->add(4);           // false — already present, set unchanged
+$set->contains(2);      // true
+$set->remove(2);        // true — removed
+$set->remove(99);       // false — wasn't present
+$set->isEmpty();        // bool
+$set->getAll();         // list<T> snapshot, insertion order
+$set->count();           // int
+$set->clear();           // empties in place
+
+count($set);              // same as count(), via Countable
+foreach ($set as $value) { /* ... */ } // via IteratorAggregate, insertion order
+```
+
+`null` is not a valid element — `add(null)`, `contains(null)`, and `remove(null)` all throw `InvalidArgumentException` (this comes from `GeneralArrayAlgorithms::contains()`, which every membership check routes through — see [General Array Helpers](#general-array-helpers--generalarrayalgorithms) below). Comparison is always strict, so values a looser check would merge stay distinct:
+
+```php
+$set = new Set([1, '1', true]);
+$set->count(); // 3 — int 1, string "1", and bool true are three different elements
+```
+
+#### Set algebra
+
+```php
+$a = new Set([1, 2, 3]);
+$b = new Set([2, 3, 4]);
+
+$a->union($b)->getAll();        // [1, 2, 3, 4] — new Set, $a and $b unchanged
+$a->intersection($b)->getAll(); // [2, 3]
+$a->difference($b)->getAll();   // [1]           — in $a, not in $b (directional)
+$b->difference($a)->getAll();   // [4]           — in $b, not in $a
+
+$a->isSubsetOf($b);    // false
+$a->isSupersetOf($b);  // false
+$a->equals(new Set([3, 2, 1])); // true — order doesn't matter
+```
+
+The empty set is a subset of every set, and every set is a subset of itself. `equals()` compares size first (`O(1)`) before falling through to an element-by-element check.
+
+See [`articles/15-set.md`](articles/15-set.md) for the full internals walkthrough, including why `remove()` has to reassign `$this->data` rather than just call `GeneralArrayAlgorithms::remove()` (that helper is pure — it returns a new array rather than mutating its argument).
+
+---
+
 ## Algorithms
 
 Algorithm classes live under `src/Algorithmes/` and are static-method utility classes operating on plain PHP arrays — fully decoupled from the data structures above.
@@ -820,14 +873,17 @@ $dijkstra->display();             // pretty-prints every node's distance/visited
 
 ### General Array Helpers — `GeneralArrayAlgorithms`
 
-`Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms`
+`Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms` — generic (`@template T`, `mixed` at runtime) helpers used internally by [`Set`](#set) and reusable directly.
 
 ```php
 use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
 
 GeneralArrayAlgorithms::hasDuplicates([1, 2, 3, 2]); // true
 GeneralArrayAlgorithms::contains([1, 2, 3], 2);      // true, strict (===) comparison
+GeneralArrayAlgorithms::remove([1, 2, 3], 2);        // [1, 3] — returns a NEW array, does not mutate its argument
 ```
+
+`contains()` throws `InvalidArgumentException` if `$value` is `null` (null is never treated as a findable element). `remove()` is **pure**: it takes `$data` by value and returns a new, re-indexed (`array_values()`) array with every `===`-matching element removed — callers must capture the return value (`$data = GeneralArrayAlgorithms::remove($data, $x)`) to see the removal, since the input array itself is left untouched.
 
 ### Low-level Helpers — `AlgorythmesGlobalHelpers`
 
@@ -850,6 +906,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
 | `InvalidArgumentException` (SPL) | `HashTable`'s constructor (`$capacity <= 0`); `insert()`/`hasValue()`/`delete()`/`getValuePosition()`/`update()`/`getValue()` when given an unhashable value (a closure or a resource) | See [What counts as "hashable"](#hashtable) |
 | `InvalidArgumentException` (SPL) | `HashMap`'s constructor (`$capacity <= 0`); `put()`/`hasKey()`/`get()`/`delete()`/`getKeyPosition()`/`update()` when given an unhashable key (a closure or a resource) — values have no such restriction | See [Keys vs. values](#hashmap) |
+| `InvalidArgumentException` (SPL) | `GeneralArrayAlgorithms::contains()` (used internally by `Set::add()`/`contains()`/`remove()` and the set-algebra methods) when given `null` | See [Set](#set) / [General Array Helpers](#general-array-helpers--generalarrayalgorithms) |
 | `OutOfBoundsException` (SPL) | `HashTable::getBucket()` / `HashMap::getBucket()` for a `$bucketIndex` outside `0` .. `getCapacity() - 1` | See [Known Quirks & Gotchas](#known-quirks--gotchas) below |
 | `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `RuntimeException` (SPL) | `DijkstraAlgorithm::calculateDistances()` (unknown source node, or a non-numeric/unweighted edge weight hit mid-relaxation); `DijkstraAlgorithm::findShortestPath()` (unknown target node) | See [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm) |
@@ -906,7 +963,7 @@ src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
 │   └── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet
 ├── DataStructure/
 │   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
@@ -914,7 +971,8 @@ src/
 │   ├── Queue/                 # Queue
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
 │   ├── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
-│   └── HashTabe/                # HashTable, HashMap, HashMapNode (folder name is a typo — see the HashTable section above)
+│   ├── HashTabe/                # HashTable, HashMap, HashMapNode (folder name is a typo — see the HashTable section above)
+│   └── Set/                      # Set — array-backed, no hashing, see the Set section above
 ├── enums/                     # PriorityQueueTypeEnum
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
 ├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
@@ -926,7 +984,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set (a hash table and hash map now exist, see [HashTable](#hashtable) and [HashMap](#hashmap)).
+See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, and a plain unique-value `Set` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), and [Set](#set) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog).
 
 ## License
 

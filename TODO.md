@@ -1,9 +1,9 @@
 # TODO
 
 Backlog of what's actually left to implement, ordered smallest-effort-first.
-Reconciled against `src/` as of 2026-08-20 — see `features.md` for conventions
-each new structure/algorithm must follow (immutable style, `ErrorMessages`,
-contracts, test layout).
+Reconciled against `src/` as of 2026-08-21 (adds `Set`/`ISet`) — see
+`features.md` for conventions each new structure/algorithm must follow
+(immutable style, `ErrorMessages`, contracts, test layout).
 
 ## Already implemented (not action items — listed so this doesn't re-flag them)
 
@@ -53,6 +53,19 @@ contracts, test layout).
   closure/resource is a valid *value*, just not a valid *key*). No static factories,
   construct with `new HashMap(int $capacity = 10)`. Mutable, same auto-resize behavior as
   `HashTable`, also implements `IteratorAggregate`/`Countable`. 100% method/line coverage.
+- `Set` (`src/DataStructure/Set/`, `ISet` contract) — plain array-backed collection of
+  unique values (`@template T`), de-duplicated via strict `===` comparison, no hashing (a
+  linear scan, unlike `HashTable`). Set-algebra methods (`union`, `intersection`,
+  `difference`, `isSubsetOf`, `isSupersetOf`, `equals`); `union()`/`intersection()`/
+  `difference()` are pure (return a new `Set`, never mutate either operand), while
+  `add()`/`remove()`/`clear()` mutate in place — the one structure in this library mixing
+  both styles. No static factories, construct with `new Set(array $data = [])`. `null` is
+  rejected (throws `InvalidArgumentException`) as an element. Implements
+  `IteratorAggregate`/`Countable`. 100% method/line coverage. Not the same thing as the
+  still-pending Disjoint Set/Union-Find item further down this file — that's a different
+  structure (find/union-by-rank over partitioned sets), this is a plain unique-value
+  collection. Documented in the README under [Set](README.md#set) and in
+  [`articles/15-set.md`](articles/15-set.md).
 
 ## Next up (recommended order)
 
@@ -75,7 +88,9 @@ contracts, test layout).
    above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
 8. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
     **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table and Hash
-    Map are done — see `HashTable`/`HashMap` above.)
+    Map are done — see `HashTable`/`HashMap` above. A plain unique-value
+    `Set` is also done — see `Set` above — but that's not the same as
+    Union-Find/Disjoint Set, which is still open.)
 9. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`
