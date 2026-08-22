@@ -5,6 +5,7 @@ namespace Zack\PhpDsAlgo\DataStructure\Set;
 
 use ArrayIterator;
 use IteratorAggregate;
+use OutOfBoundsException;
 use Traversable;
 use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
 use Zack\PhpDsAlgo\Contracts\ISet;
@@ -273,6 +274,55 @@ class Set implements ISet
                 return false;
             }
         }
+
+        return true;
+    }
+    /**
+     * Returns the value at the given iteration index.
+     *
+     * @param int $index The zero-based index of the value.
+     *
+     * @return T The value at the given index.
+     *
+     * @throws OutOfBoundsException If the index does not exist.
+     */
+    public function get(int $index): mixed
+    {
+        if (!isset($this->data[$index])) {
+            throw new OutOfBoundsException(
+                "Index {$index} is out of bounds."
+            );
+        }
+
+        return $this->data[$index];
+    }
+
+    /**
+     * Returns the iteration index of the given value.
+     *
+     * @param T $value The value whose index should be found.
+     *
+     * @return int|false The zero-based index, or false if the value does not exist.
+     */
+    public function indexOf(mixed $value): int|false
+    {
+        foreach ($this->data as $index => $item) {
+            if (GeneralArrayAlgorithms::equals($item, $value)) {
+                return $index;
+            }
+        }
+
+        return false;
+    }
+    public function update(mixed $oldValue, mixed $newValue): bool
+    {
+        $oldIndex = $this->indexOf($oldValue);
+
+        if ($oldIndex === false || $this->contains($newValue)) {
+            return false;
+        }
+
+        $this->data[$oldIndex] = $newValue;
 
         return true;
     }

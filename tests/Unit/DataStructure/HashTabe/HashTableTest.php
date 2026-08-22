@@ -3,7 +3,6 @@
 namespace Tests\Unit\DataStructure\HashTabe;
 
 use InvalidArgumentException;
-use OutOfBoundsException;
 use PHPUnit\Framework\TestCase;
 use Zack\PhpDsAlgo\Contracts\IHashTable;
 use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
@@ -86,7 +85,10 @@ class HashTableTest extends TestCase
         $table->insert($value);
 
         $expected = $this->expectedIndex($value, 10);
-        $this->assertSame([$value], $table->getBucket($expected));
+        $this->assertSame(
+            ['bucketIndex' => $expected, 'itemIndex' => 0],
+            $table->getValuePosition($value)
+        );
     }
 
     public function testInsertHandlesCollisionsViaChaining(): void
@@ -103,7 +105,18 @@ class HashTableTest extends TestCase
         $this->assertTrue($table->hasValue('item-2'));
         $this->assertTrue($table->hasValue('item-5'));
         $this->assertTrue($table->hasValue('item-48'));
-        $this->assertSame(['item-2', 'item-5', 'item-48'], $table->getBucket(25));
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 0],
+            $table->getValuePosition('item-2')
+        );
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 1],
+            $table->getValuePosition('item-5')
+        );
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 2],
+            $table->getValuePosition('item-48')
+        );
     }
 
     public function testInsertAllowsDuplicateValues(): void
@@ -284,7 +297,10 @@ class HashTableTest extends TestCase
         $table->update('old', 'new');
 
         $expected = $this->expectedIndex('new', 10);
-        $this->assertSame(['new'], $table->getBucket($expected));
+        $this->assertSame(
+            ['bucketIndex' => $expected, 'itemIndex' => 0],
+            $table->getValuePosition('new')
+        );
     }
 
     // --- getValue ---
@@ -331,32 +347,6 @@ class HashTableTest extends TestCase
         $table->delete('a');
 
         $this->assertSame(['b'], $table->getAllValues());
-    }
-
-    // --- getBuckets / getBucket ---
-
-    public function testGetBucketsReturnsIndexForEveryBucket(): void
-    {
-        $table = new HashTable(4);
-
-        $this->assertSame([0, 1, 2, 3], $table->getBuckets());
-    }
-
-    public function testGetBucketReturnsEmptyArrayForUnusedBucket(): void
-    {
-        $table = new HashTable(4);
-
-        $this->assertSame([], $table->getBucket(0));
-    }
-
-    public function testGetBucketReturnsValuesInThatBucket(): void
-    {
-        // 'item-2' and 'item-5' collide into bucket 25 on a capacity-100 table.
-        $table = new HashTable(100);
-        $table->insert('item-2');
-        $table->insert('item-5');
-
-        $this->assertSame(['item-2', 'item-5'], $table->getBucket(25));
     }
 
     // --- getSize / getCapacity / getLoadFactor ---
@@ -428,7 +418,10 @@ class HashTableTest extends TestCase
         $table->resize();
 
         $expected = $this->expectedIndex($value, 8);
-        $this->assertSame([$value], $table->getBucket($expected));
+        $this->assertSame(
+            ['bucketIndex' => $expected, 'itemIndex' => 0],
+            $table->getValuePosition($value)
+        );
     }
 
     // --- clear ---
@@ -658,29 +651,14 @@ class HashTableTest extends TestCase
         $table->insert(0.0);
 
         // Both values land in the same bucket and are tracked as two
-        // separate entries there (duplicates are allowed).
-        $position = $table->getValuePosition(0.0);
-        $this->assertSame(2, count($table->getBucket($position['bucketIndex'])));
-    }
+        // separate entries there (duplicates are allowed) - getValuePosition()
+        // can't tell the two apart by === (they compare equal), but the
+        // bucket they're placed in matches, and getSize() still counts both.
+        $negativeZeroPosition = $table->getValuePosition(-0.0);
+        $positiveZeroPosition = $table->getValuePosition(0.0);
 
-    // --- getBucket out-of-range ---
-
-    public function testGetBucketThrowsForOutOfRangeIndex(): void
-    {
-        $table = new HashTable(4);
-
-        $this->expectException(OutOfBoundsException::class);
-
-        $table->getBucket(4);
-    }
-
-    public function testGetBucketThrowsForNegativeIndex(): void
-    {
-        $table = new HashTable(4);
-
-        $this->expectException(OutOfBoundsException::class);
-
-        $table->getBucket(-1);
+        $this->assertSame($negativeZeroPosition['bucketIndex'], $positiveZeroPosition['bucketIndex']);
+        $this->assertSame(2, $table->getSize());
     }
 
     // --- IteratorAggregate / Countable ---

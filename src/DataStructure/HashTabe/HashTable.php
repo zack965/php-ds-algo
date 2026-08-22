@@ -2,10 +2,10 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\HashTabe;
 
+use Closure;
 use Countable;
 use InvalidArgumentException;
 use IteratorAggregate;
-use OutOfBoundsException;
 use Traversable;
 use Zack\PhpDsAlgo\Contracts\IHashTable;
 
@@ -112,7 +112,14 @@ class HashTable implements IHashTable, IteratorAggregate, Countable
                 'Resources cannot be used as hash table values.'
             );
         }
-
+        if ($value instanceof Closure) {
+            throw new InvalidArgumentException(
+                'Closures cannot be used as hash table values.'
+            );
+        }
+        if (is_object($value)) {
+            return 'object:' . spl_object_id($value);
+        }
         if (is_float($value) && $value === 0.0) {
             // Canonicalize -0.0 to 0.0: `-0.0 === 0.0` is true in PHP (the
             // comparison this class uses for all equality checks), but
@@ -173,8 +180,6 @@ class HashTable implements IHashTable, IteratorAggregate, Countable
         foreach ($this->table[$index] as $itemIndex => $item) {
             if ($item === $value) {
                 unset($this->table[$index][$itemIndex]);
-
-
                 return true;
             }
         }
@@ -195,7 +200,7 @@ class HashTable implements IHashTable, IteratorAggregate, Countable
     public function hasValue(mixed $value): bool
     {
         $index = $this->tableHash($value);
-        foreach ($this->table[$index] as $itemIndex => $item) {
+        foreach ($this->table[$index] as $item) {
             if ($item === $value) {
                 return true;
             }
@@ -254,11 +259,11 @@ class HashTable implements IHashTable, IteratorAggregate, Countable
             return false;
         }
 
+        $newIndex = $this->tableHash($newValue);
+
         unset(
             $this->table[$position['bucketIndex']][$position['itemIndex']]
         );
-
-        $newIndex = $this->tableHash($newValue);
 
         $this->table[$newIndex][] = $newValue;
 
@@ -387,46 +392,6 @@ class HashTable implements IHashTable, IteratorAggregate, Countable
             }
         }
         return $values;
-    }
-
-    /**
-     * Returns the index of every bucket in the table, i.e. `0` through
-     * `getCapacity() - 1`.
-     *
-     * This lists bucket indices, not their contents - use
-     * {@see getBucket()} to read what's stored in a given bucket.
-     *
-     * @return list<int>
-     */
-    public function getBuckets(): array
-    {
-        $buckets = [];
-        foreach ($this->table as $bucket => $items) {
-            $buckets[] = $bucket;
-        }
-        return $buckets;
-    }
-
-    /**
-     * Returns the raw contents of a single bucket.
-     *
-     * The keys are not guaranteed to be a contiguous 0-based list: they
-     * may have gaps if a value in that bucket was previously removed via
-     * {@see delete()}.
-     *
-     * @throws OutOfBoundsException If `$bucketIndex` is outside
-     *  `0` .. `getCapacity() - 1`.
-     *
-     * @return array<int, T>
-     */
-    public function getBucket(int $bucketIndex): array
-    {
-        if (!isset($this->table[$bucketIndex])) {
-            throw new OutOfBoundsException(
-                "Bucket index {$bucketIndex} does not exist."
-            );
-        }
-        return $this->table[$bucketIndex];
     }
 
     /**

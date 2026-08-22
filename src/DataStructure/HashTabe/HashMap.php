@@ -3,10 +3,10 @@
 
 namespace Zack\PhpDsAlgo\DataStructure\HashTabe;
 
+use Closure;
 use Countable;
 use InvalidArgumentException;
 use IteratorAggregate;
-use OutOfBoundsException;
 use Traversable;
 use Zack\PhpDsAlgo\Contracts\IHashMap;
 
@@ -63,6 +63,12 @@ class HashMap implements IHashMap, IteratorAggregate, Countable
         if (is_resource($key)) {
             throw new InvalidArgumentException(
                 'Resources cannot be used as hash map keys.'
+            );
+        }
+
+        if ($key instanceof Closure) {
+            throw new InvalidArgumentException(
+                'Closures cannot be used as hash map keys.'
             );
         }
 
@@ -328,36 +334,6 @@ class HashMap implements IHashMap, IteratorAggregate, Countable
             }
         }
         return $values;
-    }
-
-    /**
-     * @param int $bucketIndex
-     *
-     * @return list<HashMapNode<K, V>>
-     *
-     * @throws OutOfBoundsException If `$bucketIndex` is outside
-     *  `0` .. `getCapacity() - 1`.
-     */
-    public function getBucket(int $bucketIndex): array
-    {
-        if (!isset($this->table[$bucketIndex])) {
-            throw new OutOfBoundsException(
-                "Bucket index {$bucketIndex} does not exist."
-            );
-        }
-        return $this->table[$bucketIndex];
-    }
-
-    /**
-     * @return list<int>
-     */
-    public function getBuckets(): array
-    {
-        $buckets = [];
-        foreach ($this->table as $bucket => $items) {
-            $buckets[] = $bucket;
-        }
-        return $buckets;
     }
 
     public function getSize(): int

@@ -4,6 +4,7 @@ namespace Zack\PhpDsAlgo\Contracts;
 
 use Countable;
 use IteratorAggregate;
+use OutOfBoundsException;
 
 /**
  * A collection of unique values with no guaranteed iteration order.
@@ -157,4 +158,44 @@ interface ISet extends Countable, IteratorAggregate
      *              value in one is present in the other.
      */
     public function equals(ISet $other): bool;
+    /**
+     * Returns the value at the given iteration index.
+     *
+     * The index refers to the current iteration order of the set.
+     * Set implementations do not guarantee a stable ordering.
+     *
+     * @param int $index The zero-based iteration index.
+     *
+     * @return T The value at the given index.
+     *
+     * @throws OutOfBoundsException If the index is outside the set's range.
+     */
+    public function get(int $index): mixed;
+
+    /**
+     * Returns the iteration index of the given value.
+     *
+     * The returned index refers to the current iteration order of the set.
+     * Set implementations do not guarantee a stable ordering.
+     *
+     * @param T $value The value whose index should be found.
+     *
+     * @return int|false The zero-based iteration index, or false if the value
+     *                   does not exist in the set.
+     */
+    public function indexOf(mixed $value): int|false;
+    /**
+     * Replaces an existing value with a new value.
+     *
+     * The replacement is performed only if the old value exists and the new
+     * value does not already exist in the set. The set remains unchanged if
+     * either condition is not satisfied.
+     *
+     * @param T $oldValue The value to replace.
+     * @param T $newValue The replacement value.
+     *
+     * @return bool True if the value was successfully replaced, false if
+     *              $oldValue does not exist or $newValue already exists.
+     */
+    public function update(mixed $oldValue, mixed $newValue): bool;
 }

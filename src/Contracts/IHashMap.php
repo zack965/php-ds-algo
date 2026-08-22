@@ -121,22 +121,6 @@ interface IHashMap extends IteratorAggregate, Countable
     public function getAllValues(): array;
 
     /**
-     * Returns all entries stored in the given bucket.
-     *
-     * @param int $bucketIndex
-     *
-     * @return list<HashMapNode<K, V>>
-     */
-    public function getBucket(int $bucketIndex): array;
-
-    /**
-     * Returns the indexes of all buckets.
-     *
-     * @return list<int>
-     */
-    public function getBuckets(): array;
-
-    /**
      * Returns the number of key-value entries in the hash map.
      */
     public function getSize(): int;

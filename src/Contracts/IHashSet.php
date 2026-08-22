@@ -4,6 +4,7 @@
 namespace Zack\PhpDsAlgo\Contracts;
 
 use Countable;
+use InvalidArgumentException;
 use IteratorAggregate;
 use Traversable;
 
@@ -12,18 +13,15 @@ use Traversable;
  *
  * @extends IteratorAggregate<int, T>
  */
-interface IHashTable extends IteratorAggregate, Countable
+interface IHashSet extends IteratorAggregate, Countable
 {
     /**
-     * @return Traversable<int, T> Every stored value, in the same order as
-     *  {@see getAllValues()}.
+     * @return Traversable<int, T>
      */
     public function getIterator(): Traversable;
 
-    /**
-     * Alias for {@see getSize()}, wired to PHP's `count()`.
-     */
     public function count(): int;
+
     /**
      * @param T $value
      */
@@ -37,6 +35,10 @@ interface IHashTable extends IteratorAggregate, Countable
     /**
      * @param T $oldValue
      * @param T $newValue
+     *
+     * @return bool
+     *
+     * @throws InvalidArgumentException If either value cannot be used as a hash table value.
      */
     public function update(mixed $oldValue, mixed $newValue): bool;
 
@@ -52,12 +54,7 @@ interface IHashTable extends IteratorAggregate, Countable
      */
     public function getValuePosition(mixed $value): bool|array;
 
-    /**
-     * @param T $value
-     *
-     * @return T|null
-     */
-    public function getValue(mixed $value): mixed;
+
 
     /**
      * @return list<T>
@@ -77,10 +74,7 @@ interface IHashTable extends IteratorAggregate, Countable
     public function reset(): void;
 
     /**
-     * Doubles the capacity and re-buckets every existing value against it.
-     *
-     * Called automatically once the load factor exceeds 0.7; also callable
-     * directly to grow the table pre-emptively.
+     * Doubles the capacity and re-buckets every existing value.
      */
     public function resize(): void;
 }

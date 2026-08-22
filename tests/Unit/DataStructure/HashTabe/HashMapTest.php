@@ -3,7 +3,6 @@
 namespace Tests\Unit\DataStructure\HashTabe;
 
 use InvalidArgumentException;
-use OutOfBoundsException;
 use PHPUnit\Framework\TestCase;
 use Zack\PhpDsAlgo\Contracts\IHashMap;
 use Zack\PhpDsAlgo\DataStructure\HashTabe\HashMap;
@@ -153,7 +152,18 @@ class HashMapTest extends TestCase
         $this->assertSame('a', $map->get('item-2'));
         $this->assertSame('b', $map->get('item-5'));
         $this->assertSame('c', $map->get('item-48'));
-        $this->assertCount(3, $map->getBucket(25));
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 0],
+            $map->getKeyPosition('item-2')
+        );
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 1],
+            $map->getKeyPosition('item-5')
+        );
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 2],
+            $map->getKeyPosition('item-48')
+        );
     }
 
     public function testPutTriggersResizeWhenLoadFactorExceedsThreshold(): void
@@ -248,7 +258,9 @@ class HashMapTest extends TestCase
     {
         // Unlike HashTable::delete() (which uses unset() and leaves a gap),
         // HashMap::delete() uses array_splice(), so a bucket's keys stay a
-        // contiguous 0-based list after a deletion.
+        // contiguous 0-based list after a deletion - observable here as the
+        // remaining entries' itemIndex shifting down rather than leaving a
+        // gap where the deleted entry used to be.
         $map = new HashMap(100);
         $map->put('item-2', 'a');
         $map->put('item-5', 'b');
@@ -256,10 +268,14 @@ class HashMapTest extends TestCase
 
         $map->delete('item-2');
 
-        $bucket = $map->getBucket(25);
-        $this->assertSame([0, 1], array_keys($bucket));
-        $this->assertSame('item-5', $bucket[0]->getKey());
-        $this->assertSame('item-48', $bucket[1]->getKey());
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 0],
+            $map->getKeyPosition('item-5')
+        );
+        $this->assertSame(
+            ['bucketIndex' => 25, 'itemIndex' => 1],
+            $map->getKeyPosition('item-48')
+        );
     }
 
     public function testDeleteFromEmptyMapReturnsFalse(): void
@@ -433,40 +449,6 @@ class HashMapTest extends TestCase
         $map->delete('a');
 
         $this->assertSame(['b'], $map->getAllKeys());
-    }
-
-    // --- getBuckets / getBucket ---
-
-    public function testGetBucketsReturnsIndexForEveryBucket(): void
-    {
-        $map = new HashMap(4);
-
-        $this->assertSame([0, 1, 2, 3], $map->getBuckets());
-    }
-
-    public function testGetBucketReturnsEmptyArrayForUnusedBucket(): void
-    {
-        $map = new HashMap(4);
-
-        $this->assertSame([], $map->getBucket(0));
-    }
-
-    public function testGetBucketThrowsForOutOfRangeIndex(): void
-    {
-        $map = new HashMap(4);
-
-        $this->expectException(OutOfBoundsException::class);
-
-        $map->getBucket(4);
-    }
-
-    public function testGetBucketThrowsForNegativeIndex(): void
-    {
-        $map = new HashMap(4);
-
-        $this->expectException(OutOfBoundsException::class);
-
-        $map->getBucket(-1);
     }
 
     // --- getSize / getCapacity / getLoadFactor ---
