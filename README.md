@@ -18,6 +18,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [HashTable](#hashtable)
   - [HashMap](#hashmap)
   - [Set](#set)
+  - [HashSet](#hashset)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
@@ -77,7 +78,7 @@ echo implode(', ', $sorted); // 1, 2, 3, 4, 5
 
 ## Data Structures
 
-All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), `PriorityQueue`, `HashTable`, and `HashMap` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s, `PriorityQueue`'s, `HashTable`'s, and `HashMap`'s `insert()`/`put()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap), [PriorityQueue](#priorityqueue), [HashTable](#hashtable), and [HashMap](#hashmap) below). **`Set` mixes both styles on one class**: `add()`/`remove()`/`clear()` mutate it in place, but `union()`/`intersection()`/`difference()` are pure and always return a **new** `Set`, leaving both operands untouched (see [Set](#set) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
+All data structures live under `src/DataStructure/`. **`SingleLinkedList`, `DoublyLinkedList`, and `Graph` are persistent/immutable**: operations that look like mutations (`append`, `insert`, `removeAt`, `addNode`, ...) never change the receiver — they return a **new instance** and leave the original untouched. **`ArrayStack`, `Queue`, `Heap` (`MinHeap`/`MaxHeap`), `PriorityQueue`, `HashTable`, and `HashMap` are the opposite: genuinely mutable.** `ArrayStack`'s and `Queue`'s "mutating" methods change the object in place and return `$this` for chaining; `Heap`'s, `PriorityQueue`'s, `HashTable`'s, and `HashMap`'s `insert()`/`put()`/`clear()` also mutate in place but return `void` — no chaining (see [Heap](#heap-minheap--maxheap), [PriorityQueue](#priorityqueue), [HashTable](#hashtable), and [HashMap](#hashmap) below). **`Set` mixes both styles on one class**: `add()`/`remove()`/`clear()` mutate it in place, but `union()`/`intersection()`/`difference()` are pure and always return a **new** `Set`, leaving both operands untouched (see [Set](#set) below). **`HashSet` is fully mutable**, same shape as `HashTable`/`HashMap` (see [HashSet](#hashset) below). Keep this split in mind — it's the single biggest behavioral difference between the groups.
 
 ### SingleLinkedList
 
@@ -595,17 +596,15 @@ $table->hasValue($b); // false — not the same instance
 
 `===` also means `1`, `'1'`, and `true` are tracked as distinct entries even though they may share a bucket.
 
-#### Inspecting buckets
+#### Inspecting values
 
 ```php
 $table->getAllValues();   // list<T> — every stored value, flattened across all buckets
-$table->getBuckets();     // list<int> — every bucket index, i.e. 0..getCapacity()-1
-$table->getBucket(3);     // array<int, T> — raw contents of bucket 3 (throws OutOfBoundsException if out of range)
 $table->getValuePosition('apple'); // ['bucketIndex' => ..., 'itemIndex' => ...] or false
 $table->getValue('apple'); // returns 'apple' if present, null otherwise (values are their own keys)
 ```
 
-`getBucket()`'s result isn't guaranteed to be a contiguous 0-based list — `delete()` removes an entry with `unset()` rather than reindexing, so a bucket's keys can have gaps after a deletion.
+> **No `getBucket()`/`getBuckets()`.** Earlier versions exposed the raw bucket array (or, for `HashSet` below, the live internal `Set` per bucket) via these two methods. Both were removed — they leaked internal storage structure that callers had no business depending on, and for `HashSet` specifically, exposing the actual internal `Set` per bucket meant a caller mutating one directly (e.g. `$bucket->add(...)`) could corrupt the table without going through `tableHash()` at all. `getValuePosition()` still tells you which bucket a value landed in, without exposing the bucket itself.
 
 #### Resizing
 
@@ -669,11 +668,10 @@ $map->getValuePosition('zack'); // same shape, found by scanning every bucket
 $map->getAllEntries(); // list<HashMapNode<K, V>> — every entry, as HashMapNode objects
 $map->getAllKeys();    // list<K>
 $map->getAllValues();  // list<V>
-$map->getBuckets();    // list<int> — every bucket index
-$map->getBucket(3);    // list<HashMapNode<K, V>> — contents of bucket 3 (throws OutOfBoundsException if out of range)
+$map->getKeyPosition('name');   // ['bucketIndex' => ..., 'itemIndex' => ...] or false
 ```
 
-Unlike `HashTable::getBucket()` (which can leave gaps after a `delete()`, since it uses `unset()`), `HashMap::delete()` uses `array_splice()`, so a bucket's keys always stay a contiguous 0-based list.
+`HashMap::delete()` uses `array_splice()` (not `unset()`, unlike `HashTable::delete()`), so a bucket's keys internally always stay a contiguous 0-based list — not observable directly since (see the note under [HashTable](#hashtable) above) `getBucket()`/`getBuckets()` were removed from all three hash structures for exposing internal storage; `getKeyPosition()`'s `itemIndex` reflects the reindexing instead.
 
 There's deliberately no `toArray()` returning a plain `[key => value]` PHP array: since keys can be arrays or objects, and native PHP array keys are restricted to `int|string`, a naive `toArray()` would have to silently coerce or crash on exactly the keys this class is generic enough to accept. `getAllEntries()`/`getAllKeys()`/`getAllValues()` (and `foreach`, which yields real `K`-typed keys via a generator — not restricted the way a native array's keys are) are the intended way to read a `HashMap` out.
 
@@ -685,7 +683,7 @@ Same as `HashTable`: `put()` doubles the capacity (via `resize()`) once a genuin
 
 ### Set
 
-`Zack\PhpDsAlgo\DataStructure\Set\Set` — implements `ISet`, `IteratorAggregate`, `Countable`. A plain, array-backed collection of unique values plus set-algebra operations (`union`, `intersection`, `difference`, `isSubsetOf`, `isSupersetOf`, `equals`). Unlike `HashTable`, it does **no hashing** — membership is a linear scan (`O(n)`) using strict (`===`) comparison, so it favors simplicity over lookup speed (see [Set vs. HashTable](articles/15-set.md#set-vs-hashtable-when-to-reach-for-which) in the article for when to reach for which). **Mixes mutable and pure styles on one class**: `add()`/`remove()`/`clear()` mutate in place, but `union()`/`intersection()`/`difference()` never touch either operand and always return a **new** `Set`. No static factories — construct directly with `new Set(array $data = [])`.
+`Zack\PhpDsAlgo\DataStructure\Set\Set` — implements `ISet`, `IteratorAggregate`, `Countable`. A plain, array-backed collection of unique values plus indexed access (`get`, `indexOf`, `update`) and set-algebra operations (`union`, `intersection`, `difference`, `isSubsetOf`, `isSupersetOf`, `equals`). Unlike `HashTable`, it does **no hashing** — membership is a linear scan (`O(n)`) using strict (`===`) comparison, so it favors simplicity over lookup speed (see [Set vs. HashTable](articles/15-set.md#set-vs-hashtable-when-to-reach-for-which) in the article for when to reach for which). **Mixes mutable and pure styles on one class**: `add()`/`remove()`/`clear()`/`update()` mutate in place, but `union()`/`intersection()`/`difference()` never touch either operand and always return a **new** `Set`. No static factories — construct directly with `new Set(array $data = [])`.
 
 ```php
 use Zack\PhpDsAlgo\DataStructure\Set\Set;
@@ -713,6 +711,28 @@ $set = new Set([1, '1', true]);
 $set->count(); // 3 — int 1, string "1", and bool true are three different elements
 ```
 
+One deliberate carve-out to "strict": two `NAN` floats compare equal to each other for `Set`'s purposes, even though `NAN === NAN` is `false` in PHP — see [`GeneralArrayAlgorithms::equals()`](#general-array-helpers--generalarrayalgorithms) below, which `add()`/`contains()`/`remove()`/`indexOf()` all share.
+
+```php
+$set = new Set();
+$set->add(NAN);
+$set->add(NAN);     // false — already present, not a second entry
+$set->remove(NAN);  // true — actually removed (not just reported as found)
+```
+
+#### Indexed access
+
+```php
+$set = new Set(['a', 'b', 'c']);
+
+$set->get(1);          // 'b' — value at iteration index 1, throws OutOfBoundsException if out of range
+$set->indexOf('b');    // 1
+$set->indexOf('z');    // false — not present
+$set->update('b', 'z'); // true — 'b' replaced by 'z' at the same index
+```
+
+`get()`/`indexOf()` refer to the set's *current iteration order* (insertion order for this implementation), which `ISet` doesn't otherwise guarantee is stable — don't rely on a specific index surviving an `add()`/`remove()`. `update()` only replaces `$oldValue` if it exists **and** `$newValue` isn't already present elsewhere in the set (both checked before anything is mutated); it returns `false` and leaves the set untouched if either condition fails.
+
 #### Set algebra
 
 ```php
@@ -732,6 +752,79 @@ $a->equals(new Set([3, 2, 1])); // true — order doesn't matter
 The empty set is a subset of every set, and every set is a subset of itself. `equals()` compares size first (`O(1)`) before falling through to an element-by-element check.
 
 See [`articles/15-set.md`](articles/15-set.md) for the full internals walkthrough, including why `remove()` has to reassign `$this->data` rather than just call `GeneralArrayAlgorithms::remove()` (that helper is pure — it returns a new array rather than mutating its argument).
+
+---
+
+### HashSet
+
+`Zack\PhpDsAlgo\DataStructure\HashTabe\HashSet` — implements `IHashSet`, `IteratorAggregate`, `Countable`. Lives in the `HashTabe` folder/namespace alongside `HashTable`/`HashMap` (sharing their hashing approach — separate chaining, `xxh3`-hashed buckets, auto-resize past a `0.7` load factor), but each bucket is a real [`Set`](#set) instance rather than a raw array — so `HashSet`, unlike `HashTable` (a bag: duplicates allowed), is a genuine set: inserting an equal value twice is a no-op. **Mutable**, same shape as `HashTable`/`HashMap` — `insert()`/`delete()`/`update()`/`clear()`/`reset()`/`resize()` change the table in place. No static factories — construct directly with `new HashSet(int $capacity = 10)`; `$capacity <= 0` throws `InvalidArgumentException`.
+
+```php
+use Zack\PhpDsAlgo\DataStructure\HashTabe\HashSet;
+
+$set = new HashSet(); // capacity defaults to 10
+
+$set->insert('apple');
+$set->insert('apple'); // no-op — already present, unlike HashTable::insert()
+
+$set->hasValue('apple'); // true
+$set->hasValue('missing'); // false
+
+$set->delete('apple');      // true — removed
+$set->update('a', 'b');     // renames a value in place — see below
+
+$set->getSize();         // current element count
+$set->getCapacity();     // current bucket count
+$set->getLoadFactor();   // getSize() / getCapacity()
+$set->isEmpty();         // bool
+
+count($set);              // same as getSize(), via Countable
+foreach ($set as $value) { /* ... */ } // via IteratorAggregate
+```
+
+`HashSet` is documented generically with a narrower type bound than `HashTable`/`HashMap`: `@template T of scalar|object` — `null` and arrays are outside that bound and explicitly rejected (`HashTable` accepts both).
+
+#### What counts as "hashable"
+
+Mostly the same rules as [`HashTable`](#hashtable), with two differences:
+
+- **`null` and arrays are rejected** — `HashTable` accepts both; `HashSet`'s narrower `scalar|object` type bound doesn't.
+- **Objects (including closures) are hashed by `spl_object_id()`, not `serialize()`** — bucketing is by object *identity*, not by property values. Two distinct instances with identical properties will very likely land in *different* buckets here (`HashTable`/`HashMap` would put them in the same bucket via `serialize()`, then still tell them apart with `===`). Either way, membership is always decided by `===`, so this only affects which bucket a lookup starts scanning from, never correctness.
+
+Otherwise unchanged: strings hash directly; other scalars go through `serialize()`; resources and closures have no stable representation and are rejected with `InvalidArgumentException`; `-0.0`/`0.0` are canonicalized before hashing so they land in the same bucket, matching `-0.0 === 0.0`. One more carve-out shared with [`Set`](#set): two `NAN` floats compare equal for `hasValue()`/`delete()`/`update()`'s purposes (via the same `GeneralArrayAlgorithms::equals()` used by `Set`), even though `NAN === NAN` is `false` — without it, a `NAN` could be reported present by `hasValue()` yet never actually removable by `delete()`.
+
+```php
+$set = new HashSet();
+$set->insert(NAN);
+$set->insert(NAN);   // no-op, not a second entry
+$set->delete(NAN);   // true — actually removed
+```
+
+#### update()
+
+```php
+$set = new HashSet();
+$set->insert('old');
+
+$set->update('old', 'new'); // true — 'old' renamed to 'new', possibly moving to a different bucket
+$set->update('missing', 'x'); // false — nothing to rename
+$set->update('a', 'b'); // false if 'b' already exists elsewhere — never overwrites/merges
+```
+
+Unlike `getValuePosition()`/`hasValue()`, which throw `InvalidArgumentException` for an unhashable `$value`, `update()` **never throws** — an invalid `$oldValue` or `$newValue` (e.g. `null`, an array, a closure) makes it return `false` instead, same as "nothing to do." `update(x, x)` (old and new value equal, including the `NAN`-equals-`NAN` carve-out) is a no-op success (`true`), without touching the set.
+
+#### Inspecting values
+
+```php
+$set->getAllValues();          // list<T> — every stored value, flattened across all buckets
+$set->getValuePosition('apple'); // ['bucketIndex' => ..., 'itemIndex' => ...] or false
+```
+
+Like `HashTable`/`HashMap`, `HashSet` has no `getBucket()`/`getBuckets()` — exposing a bucket here would mean exposing the actual internal `Set` instance backing it, letting a caller mutate the table directly (bypassing `tableHash()` entirely) via a plain `Set` method call. See the note under [HashTable](#hashtable) above.
+
+#### Resizing
+
+Same as `HashTable`/`HashMap`: `insert()` doubles the capacity (via `resize()`) once a genuine insert pushes the load factor past `0.7`, re-bucketing every value against the new capacity; `resize()` is also public for pre-emptive growth. `clear()` empties all buckets but keeps capacity; `reset()` empties the set **and** restores the default capacity of 10.
 
 ---
 
@@ -873,7 +966,7 @@ $dijkstra->display();             // pretty-prints every node's distance/visited
 
 ### General Array Helpers — `GeneralArrayAlgorithms`
 
-`Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms` — generic (`@template T`, `mixed` at runtime) helpers used internally by [`Set`](#set) and reusable directly.
+`Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms` — generic (`@template T`, `mixed` at runtime) helpers used internally by [`Set`](#set)/[`HashSet`](#hashset) and reusable directly.
 
 ```php
 use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
@@ -881,9 +974,13 @@ use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
 GeneralArrayAlgorithms::hasDuplicates([1, 2, 3, 2]); // true
 GeneralArrayAlgorithms::contains([1, 2, 3], 2);      // true, strict (===) comparison
 GeneralArrayAlgorithms::remove([1, 2, 3], 2);        // [1, 3] — returns a NEW array, does not mutate its argument
+GeneralArrayAlgorithms::equals(1, 1);                // true
+GeneralArrayAlgorithms::equals(NAN, NAN);            // true — the one carve-out from plain ===
 ```
 
-`contains()` throws `InvalidArgumentException` if `$value` is `null` (null is never treated as a findable element). `remove()` is **pure**: it takes `$data` by value and returns a new, re-indexed (`array_values()`) array with every `===`-matching element removed — callers must capture the return value (`$data = GeneralArrayAlgorithms::remove($data, $x)`) to see the removal, since the input array itself is left untouched.
+`contains()` throws `InvalidArgumentException` if `$value` is `null` (null is never treated as a findable element). `remove()` is **pure**: it takes `$data` by value and returns a new, re-indexed (`array_values()`) array with every matching element removed — callers must capture the return value (`$data = GeneralArrayAlgorithms::remove($data, $x)`) to see the removal, since the input array itself is left untouched.
+
+`equals()` is the shared equality definition behind both `contains()` and `remove()`: strict `===`, except that two `NAN` floats are treated as equal to each other. Without that carve-out, `NAN === NAN` is always `false` in PHP, so `contains()` and `remove()` would disagree with each other about a `NAN` element — `contains()` could report it present while `remove()` could never actually match and delete it. Keeping both methods on this one `equals()` definition is what keeps them consistent; `Set::indexOf()` (and, through it, `HashSet::getValuePosition()`/`update()`) also calls `equals()` directly for the same reason.
 
 ### Low-level Helpers — `AlgorythmesGlobalHelpers`
 
@@ -907,7 +1004,8 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | `InvalidArgumentException` (SPL) | `HashTable`'s constructor (`$capacity <= 0`); `insert()`/`hasValue()`/`delete()`/`getValuePosition()`/`update()`/`getValue()` when given an unhashable value (a closure or a resource) | See [What counts as "hashable"](#hashtable) |
 | `InvalidArgumentException` (SPL) | `HashMap`'s constructor (`$capacity <= 0`); `put()`/`hasKey()`/`get()`/`delete()`/`getKeyPosition()`/`update()` when given an unhashable key (a closure or a resource) — values have no such restriction | See [Keys vs. values](#hashmap) |
 | `InvalidArgumentException` (SPL) | `GeneralArrayAlgorithms::contains()` (used internally by `Set::add()`/`contains()`/`remove()` and the set-algebra methods) when given `null` | See [Set](#set) / [General Array Helpers](#general-array-helpers--generalarrayalgorithms) |
-| `OutOfBoundsException` (SPL) | `HashTable::getBucket()` / `HashMap::getBucket()` for a `$bucketIndex` outside `0` .. `getCapacity() - 1` | See [Known Quirks & Gotchas](#known-quirks--gotchas) below |
+| `InvalidArgumentException` (SPL) | `HashSet`'s constructor (`$capacity <= 0`); `insert()`/`hasValue()`/`delete()`/`getValuePosition()` when given an unhashable value (`null`, an array, a resource, or a closure) | See [What counts as "hashable"](#hashset) — `update()` is the one exception: it never throws, returning `false` instead |
+| `OutOfBoundsException` (SPL) | `Set::get(int $index)` for an index outside the set's current range | See [Indexed access](#set) above |
 | `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `RuntimeException` (SPL) | `DijkstraAlgorithm::calculateDistances()` (unknown source node, or a non-numeric/unweighted edge weight hit mid-relaxation); `DijkstraAlgorithm::findShortestPath()` (unknown target node) | See [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm) |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
@@ -937,9 +1035,10 @@ A few behaviors worth knowing before you rely on them — none of these are "wro
 - **A handful of defensive null/false guards are unreachable in practice.** `Graph::removeNode()`, and `insert()`/`removeAt()`/`get()` on both linked lists, each have a redundant guard clause that's already preceded by an equivalent bounds check earlier in the same method — under the classes' normal invariants they can never actually trigger. Harmless, just dead code.
 - **`ArraySearchAlogorthme::interpolationSearchRecursive()` computes its estimated position with float division** and uses the (possibly fractional) result both as an array index and as a recursive `int` argument — PHP emits an implicit float-to-int-conversion deprecation notice in that case. It still returns the correct result; it's just noisy.
 - **`Graph::getAdjencyMetrix()` and `Graph::printAdjacencyMatrix()` spell "adjacency"/"matrix" inconsistently** — the getter matches the existing `getAdjency()` typo (`Adjency`, `Metrix`), while the printer spells both correctly. Same method pair, two different spellings; match whichever one you're calling.
-- **`HashTable::getBucket()`/`HashMap::getBucket()` throw `OutOfBoundsException`, not `InvalidArgumentException`, for an out-of-range index.** Every other bounds/validation error in this library throws `InvalidArgumentException` — these two are the exception (pun intended).
 - **`HashMap::get()` returns `null` both for a missing key and for a key whose value genuinely is `null`.** The two cases are indistinguishable from `get()`'s return value alone — call `hasKey()` first if that distinction matters.
 - **`MinHeap`/`MaxHeap` custom comparators must return exactly `-1`/`0`/`1`.** `heapifyDown()`'s child-selection compares the comparator's result against the literal `-1`, not its sign — a comparator written in the common `fn($a, $b) => $a - $b` style (returning an arbitrary signed magnitude) will misorder the heap once `extract()` or the array constructor runs. Always use `<=>` in a heap comparator. See [Heap](#heap-minheap--maxheap) above.
+- **`HashSet` objects hash by identity (`spl_object_id()`), while `HashTable`/`HashMap` hash objects by value (`serialize()`).** Two distinct object instances with identical properties will very likely land in different buckets in a `HashSet` but the same bucket in a `HashTable`/`HashMap` — membership is always `===` either way, so this only affects which bucket a lookup starts scanning, never correctness, but it's a real difference between structures that otherwise look alike. See [HashSet](#hashset) above.
+- **`Set`/`HashSet` treat two `NAN` floats as equal to each other, unlike PHP's own `===`.** This is a deliberate carve-out in `GeneralArrayAlgorithms::equals()` (see [General Array Helpers](#general-array-helpers--generalarrayalgorithms) above) so that `contains()`/`hasValue()` and `remove()`/`delete()` agree with each other about a stored `NAN` — without it, a `NAN` could be reported present yet never actually removable.
 
 ---
 
@@ -963,7 +1062,7 @@ src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
 │   └── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet, IHashSet
 ├── DataStructure/
 │   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
@@ -971,7 +1070,7 @@ src/
 │   ├── Queue/                 # Queue
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
 │   ├── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
-│   ├── HashTabe/                # HashTable, HashMap, HashMapNode (folder name is a typo — see the HashTable section above)
+│   ├── HashTabe/                # HashTable, HashMap, HashMapNode, HashSet (folder name is a typo — see the HashTable section above)
 │   └── Set/                      # Set — array-backed, no hashing, see the Set section above
 ├── enums/                     # PriorityQueueTypeEnum
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
@@ -984,7 +1083,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, and a plain unique-value `Set` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), and [Set](#set) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog).
+See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, a plain unique-value `Set`, and a hashed `HashSet` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), [Set](#set), and [HashSet](#hashset) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog).
 
 ## License
 

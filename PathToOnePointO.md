@@ -17,11 +17,27 @@ pass on both (`put()`/`get()` contract fixes, `-0.0` hashing fix,
 `Set`/`ISet` landing (array-backed, no hashing) plus a bug pass on it
 (`contains()`/`remove()` inversion fixes, non-mutating `union()`,
 deduplicating constructor) and a generics pass on
-`GeneralArrayAlgorithms::contains()` (now `mixed`, was `int|string`)._
+`GeneralArrayAlgorithms::contains()` (now `mixed`, was `int|string`); updated
+2026-08-22 to reflect `HashSet`/`IHashSet` landing (hashed sibling of `Set` —
+each bucket is a real `Set`, so it's a true set unlike the bag-like
+`HashTable`), `Set` gaining `get()`/`indexOf()`/`update()`, and a bug/cleanup
+pass across the hash structures: `GeneralArrayAlgorithms` gained a public,
+NaN-aware `equals()` shared by `contains()`/`remove()`/`Set::indexOf()` (a
+stored `NAN` could previously be found by `contains()` yet never matched by
+`remove()`); `HashSet::update()`'s no-op short-circuit and exception handling
+were fixed to use it / to never throw; `HashTable::getBuckets()`'s
+index-vs-contents regression was fixed, then `getBucket()`/`getBuckets()`
+were removed entirely from `HashTable`/`HashMap`/`HashSet` (they exposed
+internal bucket storage — for `HashSet` specifically, exposing the live
+internal `Set` per bucket let a caller corrupt the table by mutating it
+directly); and `HashTable`/`HashSet::serializeKey()` now explicitly reject
+closures (previously silently accepted via an object-identity shortcut that
+bypassed `serialize()`'s natural rejection) — `HashMap` already rejected
+closure keys correctly, now with an explicit check too._
 
 ## Where it stands today
 
-- 784 tests / 1380 assertions, all green, but **7 PHPUnit deprecations**
+- 841 tests / 1484 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -33,14 +49,25 @@ deduplicating constructor) and a generics pass on
   (`IHashTable`/`IHashMap` contracts, `src/DataStructure/HashTabe/` — separate
   chaining, generic over any hashable value/key via `@template T`/`K, V`,
   auto-resize past a 0.7 load factor, both implement `IteratorAggregate` and
-  `Countable`, 100% method/line coverage; see M2 below), and `Set`
+  `Countable`, 100% method/line coverage; see M2 below), `Set`
   (`ISet` contract, `src/DataStructure/Set/` — array-backed, no hashing,
   `O(n)` strict-comparison membership; set-algebra methods
-  `union`/`intersection`/`difference`/`isSubsetOf`/`isSupersetOf`/`equals`,
-  with `union`/`intersection`/`difference` pure and the rest of the class
+  `union`/`intersection`/`difference`/`isSubsetOf`/`isSupersetOf`/`equals`
+  plus indexed access `get`/`indexOf`/`update`, with
+  `union`/`intersection`/`difference` pure and the rest of the class
   mutable; 100% method/line coverage; not part of the curated M2 list below
   — a small extra alongside `HashTable`/`HashMap`, see
-  [`articles/15-set.md`](articles/15-set.md)).
+  [`articles/15-set.md`](articles/15-set.md)), and `HashSet` (`IHashSet`
+  contract, `src/DataStructure/HashTabe/` — `Set`'s hashed sibling: each
+  bucket is a real `Set` instance rather than a raw array, giving it genuine
+  set semantics unlike the bag-like `HashTable`; narrower `@template T of
+  scalar|object` bound than `HashTable`/`HashMap`'s bare `@template T`;
+  objects hashed by `spl_object_id()` — identity — rather than `serialize()`
+  — value; shares `Set`'s NaN-equal-to-NaN carve-out so a stored `NAN` stays
+  reliably findable *and* removable; `update()` never throws, returning
+  `false`/`true` instead for an unhashable value or a no-op rename;
+  deliberately has no `getBucket()`/`getBuckets()`, unlike `HashTable`/
+  `HashMap` where those existed and were removed — see below).
 - Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
@@ -48,14 +75,20 @@ deduplicating constructor) and a generics pass on
   `DijkstraAlgorithmDistance`, `src/Algorithmes/DijkstraAlgorithm/`, stateful
   — the one exception to the static-utility shape the rest of `Algorithmes/`
   uses — built on `PriorityQueue(PriorityQueueTypeEnum::Min)`, see M2 below),
-  `GeneralArrayAlgorithms` (`hasDuplicates`/`contains`/`remove` — `contains`
-  and `remove` are now documented as fully generic, `mixed`/`@template T`,
-  used internally by `Set`).
-- Docs are already strong: 60KB README, `CONTRIBUTING.md`, `Graph.md`,
+  `GeneralArrayAlgorithms` (`hasDuplicates`/`contains`/`remove`/`equals` —
+  `contains`/`remove` are fully generic (`mixed`/`@template T`); `equals()`
+  is a public, NaN-aware equality helper (strict `===`, except two `NAN`
+  floats compare equal) shared by `contains()`/`remove()` internally and
+  called directly by `Set::indexOf()`/`HashSet::update()`, used throughout
+  `Set`/`HashSet`).
+- Docs are already strong: 60KB+ README, `CONTRIBUTING.md`, `Graph.md`,
   `features.md` (conventions + backlog), `TODO.md` (ranked backlog), and a
   16-article `articles/` walkthrough series (`00-overview.md` through
   `15-set.md`, including [`12-dijkstra.md`](articles/12-dijkstra.md),
-  [`13-heap.md`](articles/13-heap.md), and [`15-set.md`](articles/15-set.md)).
+  [`13-heap.md`](articles/13-heap.md), and [`15-set.md`](articles/15-set.md)
+  — `HashSet` is documented in the README under
+  [HashSet](README.md#hashset) but doesn't yet have its own dedicated
+  article, unlike every other structure landed so far).
 - **No CI** — nothing runs `composer test` on push/PR. No static analysis
   (phpstan/psalm), no linter.
 - Legacy duplicate `src/SortingAlgorithms.php` still shipping alongside the
@@ -117,7 +150,13 @@ Concretely:
       `SingleLinkedList` (~90% methods), `LevenshteinDistance` (88.9% methods),
       `DijkstraAlgorithm` (40% methods — `display()` untested, plus an
       untested branch each in `calculateDistances()` and
-      `findShortestPath()`; see `articles/12-dijkstra.md`).
+      `findShortestPath()`; see `articles/12-dijkstra.md`), `HashSet`
+      (94.74% methods — `serializeKey()`'s outer `catch (\Throwable $e)`
+      around `serialize()` is untested; likely unreachable in practice, same
+      as the other defensive guards flagged in the README's Known Quirks
+      section, since every non-serializable type — `null`, arrays,
+      resources, closures — is already rejected explicitly before
+      `serialize()` is ever called).
 
 ### M2 — Feature completeness (blocking)
 
@@ -169,12 +208,25 @@ item is now done (see below), the rest of this list is still open:
       throwing instead of replacing, `get()` throwing instead of returning
       `null`, and the `-0.0` hashing mismatch, and closed two
       interface/implementation gaps (`resize()` missing from `IHashTable`,
-      `resize()`/`getValuePosition()` missing from `IHashMap`). Tests in
+      `resize()`/`getValuePosition()` missing from `IHashMap`). A second
+      follow-up pass fixed `HashTable::getBuckets()` briefly regressing to
+      return bucket *contents* instead of indices, then removed
+      `getBucket()`/`getBuckets()` from both classes entirely (they leaked
+      internal bucket storage — `getValuePosition()`/`getKeyPosition()`
+      still report bucket placement without exposing the bucket itself), and
+      fixed `HashTable::serializeKey()` silently accepting closures (an
+      object-identity shortcut bypassed `serialize()`'s natural rejection;
+      `HashMap` already rejected closure keys correctly, but gained an
+      explicit check too for a clearer error message). Tests in
       `tests/Unit/DataStructure/HashTabe/{HashTableTest,HashMapTest}.php`,
       100% method/line coverage on all three classes, documented in the
       README under [HashTable](README.md#hashtable) and
       [HashMap](README.md#hashmap), and in
       [`articles/14-hashtable-hashmap.md`](articles/14-hashtable-hashmap.md).
+      `HashSet` (`src/DataStructure/HashTabe/`, `IHashSet`) later joined
+      alongside these two as `Set`'s hashed sibling — see the "Where it
+      stands today" entry above; not part of this curated M2 item, a small
+      extra the same way `Set` was.
 - [ ] **Deque** (double-ended queue) — new `IDeque` contract per `TODO.md` #5;
       completes the queue family and gives a real backing for
       `IQueue::isFull()`-style bounded variants later.
@@ -257,8 +309,9 @@ them — they remain valid, ranked backlog for *after* 1.0 ships:
   now done, see above.
 - Trie, Union-Find/Disjoint Set, AVL tree, Red-Black tree, Skip List,
   Segment Tree/Fenwick Tree — Hash Table was moved into M2 and is now done,
-  see above. (A plain unique-value `Set` also landed outside M2, see above —
-  not the same structure as Union-Find/Disjoint Set, which is still open.)
+  see above. (A plain unique-value `Set` and its hashed sibling `HashSet`
+  also landed outside M2, see above — neither is the same structure as
+  Union-Find/Disjoint Set, which is still open.)
 - Remainder of the DP family (memoized/tabulated Fibonacci, LIS, coin change
   — one of knapsack/LCS moved into M2), remainder of string algorithms
   (Rabin-Karp, palindrome family — KMP moved into M2), backtracking

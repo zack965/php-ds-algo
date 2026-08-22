@@ -197,6 +197,38 @@ interface ISet extends Countable, IteratorAggregate
     public function isSupersetOf(ISet $other): bool;
     /** @param ISet<T> $other */
     public function equals(ISet $other): bool;
+    /** @return T, @throws OutOfBoundsException */
+    public function get(int $index): mixed;
+    /** @param T $value, @return int|false */
+    public function indexOf(mixed $value): int|false;
+    /** @param T $oldValue, @param T $newValue */
+    public function update(mixed $oldValue, mixed $newValue): bool;
+}
+
+/**
+ * @template T of scalar|object
+ */
+interface IHashSet extends IteratorAggregate, Countable
+{
+    /** @param T $value */
+    public function insert(mixed $value): void;
+    /** @param T $value */
+    public function delete(mixed $value): bool;
+    /** @param T $oldValue, @param T $newValue */
+    public function update(mixed $oldValue, mixed $newValue): bool;
+    /** @param T $value */
+    public function hasValue(mixed $value): bool;
+    /** @param T $value, @return array{bucketIndex: int, itemIndex: int}|false */
+    public function getValuePosition(mixed $value): bool|array;
+    /** @return list<T> */
+    public function getAllValues(): array;
+    public function getSize(): int;
+    public function getCapacity(): int;
+    public function getLoadFactor(): float;
+    public function isEmpty(): bool;
+    public function clear(): void;
+    public function reset(): void;
+    public function resize(): void;
 }
 ```
 
@@ -214,11 +246,45 @@ reference instead of erroring or calling the method. `Set` (`src/DataStructure/S
 at the interface level — but is otherwise structurally simpler: array-backed, no hashing, no
 resizing, `O(n)` membership via strict `===` comparison rather than `HashTable`'s
 `O(1)`-amortized bucket lookup. It's also the one structure so far mixing mutable and pure
-method styles on the same class: `add()`/`remove()`/`clear()` mutate in place, but
+method styles on the same class: `add()`/`remove()`/`clear()`/`update()` mutate in place, but
 `union()`/`intersection()`/`difference()` are pure and return a new instance — follow whichever
 shape actually matches the operation's semantics (a set-algebra result is a new set
 mathematically; an insert/remove is a state change) rather than picking one style for the
 whole class by default.
+
+`HashSet` (`src/DataStructure/HashTabe/`, `IHashSet`) is `HashTable`'s narrower-typed, hashed
+sibling: each bucket is a real `Set` instance rather than a raw array, so `HashSet` gets true
+set semantics (a genuine no-op on a duplicate insert) for free from `Set::add()`'s own dedup,
+instead of re-implementing it. `@template T of scalar|object` is this repo's first *bounded*
+generic (narrower than a bare `@template T`) — reach for a bound like this whenever a
+structure's own invariants (here: nothing not hashable to a stable key) rule out part of
+`mixed` from the start, rather than accepting anything and throwing deep inside a private
+method. Follow `HashSet`'s pattern of hashing objects by `spl_object_id()` (identity) only
+when identity, not structural value equality, is what the structure's `===`-based membership
+already implies — `HashTable`/`HashMap` hash objects by `serialize()` (value) instead, and
+both are internally consistent as long as the *hashing* strategy and the *membership* check
+(always `===` here) don't contradict each other.
+
+**Don't expose a structure's internal storage through its contract.** `HashTable`/`HashMap`
+originally had public `getBucket(int $index)`/`getBuckets()` methods; both were removed after
+`HashSet`'s equivalent turned out to let a caller reach in and mutate the live internal `Set`
+backing a bucket directly (bypassing the hash function entirely and corrupting the table) —
+`HashTable`/`HashMap`'s versions were safer (plain arrays copy on return) but still leaked an
+implementation detail (bucket layout) that wasn't part of any structure's actual contract.
+`getValuePosition()`/`getKeyPosition()` (which report *where* a value/key landed without
+handing back the container it lives in) are the pattern to follow instead, for any future
+structure that wants to expose internal placement for debugging/testing without exposing the
+container itself.
+
+**A shared, named equality helper beats inlining `===` everywhere a collection needs it.**
+`GeneralArrayAlgorithms::equals()` (`src/Algorithmes/GeneralArrayAlgorithms.php`) is strict
+comparison with one carve-out: two `NAN` floats count as equal to each other, even though
+`NAN === NAN` is `false` in PHP. `Set`/`HashSet`'s `contains()`/`remove()`/`indexOf()` (and,
+through `indexOf()`, `getValuePosition()`/`update()`) all call this one function rather than
+each writing their own `===` check — the lesson for future collections: decide equality
+semantics once, in one named place, and route every membership-adjacent method through it, so
+"is this value present" and "can this value be removed" can never quietly disagree with each
+other the way they did before this helper existed.
 
 ## 3. Missing data structures (backlog)
 
@@ -237,8 +303,8 @@ Not yet started:
 - **Trie** (prefix tree)
 - **Graph** (adjacency list and adjacency matrix, directed/undirected, weighted/unweighted)
 - **Disjoint Set / Union-Find** (find/union-by-rank over partitioned sets — not the same
-  structure as the plain unique-value `Set`/`ISet` that now exists in
-  `src/DataStructure/Set/`)
+  structure as the plain unique-value `Set`/`ISet` or the hashed `HashSet`/`IHashSet` that
+  now exist in `src/DataStructure/Set/` and `src/DataStructure/HashTabe/`)
 - **Skip List**
 - **Segment Tree** / **Fenwick Tree (Binary Indexed Tree)** — range query structures
 
