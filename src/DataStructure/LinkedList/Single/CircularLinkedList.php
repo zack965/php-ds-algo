@@ -10,14 +10,19 @@ use Zack\PhpDsAlgo\Constants\ErrorMessages;
 use Zack\PhpDsAlgo\Contracts\ILinkedList;
 
 
-class SingleLinkedList implements IteratorAggregate, ILinkedList
+class CircularLinkedList implements IteratorAggregate, ILinkedList
 {
     private ?SingleLinkedListNode $head = null;
+    private ?SingleLinkedListNode $tail = null;
     private int $length = 0;
     // Constructor
-    private function __construct(?SingleLinkedListNode $head = null, ?int $length = 0)
-    {
+    private function __construct(
+        ?SingleLinkedListNode $head = null,
+        ?SingleLinkedListNode $tail = null,
+        ?int $length = 0
+    ) {
         $this->head = $head;
+        $this->tail = $tail;
         $this->length = $length;
     }
 
@@ -40,7 +45,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
     {
         $current = $this->head;
 
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             yield $current; // or yield $current->getValue();
             $current = $current->getNext();
         }
@@ -63,10 +68,19 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
                 );
             }
         }
-        for ($i = 0; $i < count($nodes) - 1; $i++) {
-            $nodes[$i]->setNext($nodes[$i + 1]);
+        $clonedNodes = [];
+        foreach ($nodes as $node) {
+            $clonedNodes[] = new SingleLinkedListNode(
+                $node->getValue()
+            );
         }
-        return new self($nodes[0], count($nodes));
+        for ($i = 0; $i < count($clonedNodes) - 1; $i++) {
+            $clonedNodes[$i]->setNext($clonedNodes[$i + 1]);
+        }
+        $head = $clonedNodes[0];
+        $tail = $clonedNodes[count($clonedNodes) - 1];
+        $tail->setNext($head);
+        return new self($head, $tail, count($clonedNodes));
     }
     public static function of(array $values): self
     {
@@ -82,10 +96,9 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
             $current->setNext($next);
             $current = $next;
         }
-
-
-
-        return new self($head, count($values));
+        $tail = $current;
+        $tail->setNext($head);
+        return new self($head, $tail, count($values));
     }
     public static function fromIterable(iterable $values): self
     {
@@ -106,8 +119,10 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
             $length++;
         }
-
-        return new self($head, $length);
+        if ($head !== null && $current !== null) {
+            $current->setNext($head);
+        }
+        return new self($head, $current, $length);
     }
     // methods of insertions    
     /**
@@ -146,42 +161,72 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         $newHead = new SingleLinkedListNode($old->getValue());
         $newCurrent = $newHead;
 
-        $old = $old->getNext();
-
-        while ($old !== null) {
-            $node = new SingleLinkedListNode($old->getValue());
-            $newCurrent->setNext($node);
-
-            $newCurrent = $node;
+        for ($i = 1; $i < $this->length; $i++) {
             $old = $old->getNext();
+
+            $node = new SingleLinkedListNode($old->getValue());
+
+            $newCurrent->setNext($node);
+            $newCurrent = $node;
         }
+
+        $newCurrent->setNext($newHead);
 
         return $newHead;
     }
     public function prepend(mixed $value): self
     {
         $newHead = new SingleLinkedListNode($value);
-        $newHead->setNext($this->head);
-        return new self($newHead, $this->length + 1);
+        if ($this->head === null) {
+            $newHead->setNext($newHead);
+
+            return new self(
+                $newHead,
+                $newHead,
+                1
+            );
+        }
+        $oldHead = $this->cloneNodes();
+        $newHead->setNext($oldHead);
+        $newTail = $oldHead;
+
+        for ($i = 1; $i < $this->length; $i++) {
+            $newTail = $newTail->getNext();
+        }
+
+        $newTail->setNext($newHead);
+        return new self(
+            $newHead,
+            $newTail,
+            $this->length + 1
+        );
     }
     public function append(mixed $value): self
     {
         $newNode = new SingleLinkedListNode($value);
 
         if ($this->head === null) {
-            return new self($newNode, 1);
+            $newNode->setNext($newNode);
+            return new self(
+                $newNode,
+                $newNode,
+                1
+            );
+        }
+        $newHead = $this->cloneNodes();
+        $newTail = $newHead;
+
+        for ($i = 1; $i < $this->length; $i++) {
+            $newTail = $newTail->getNext();
         }
 
-        $head = $this->cloneNodes();
-        $current = $head;
-
-        while ($current->getNext() !== null) {
-            $current = $current->getNext();
-        }
-
-        $current->setNext($newNode);
-
-        return new self($head, $this->length + 1);
+        $newTail->setNext($newNode);
+        $newNode->setNext($newHead);
+        return new self(
+            $newHead,
+            $newNode,
+            $this->length + 1
+        );
     }
     public function insert(mixed $value, int $index): self
     {
@@ -200,39 +245,85 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
             $previousNode = $previousNode->getNext();
         }
 
-        if (is_null($previousNode)) {
-            throw new InvalidArgumentException(ErrorMessages::INDEX_OUT_OF_BOUND);
-        }
 
         $newNode = new SingleLinkedListNode($value);
+
         $newNode->setNext($previousNode->getNext());
         $previousNode->setNext($newNode);
+        $newTail = $newHead;
+        for ($i = 1; $i < $this->length; $i++) {
+            $newTail = $newTail->getNext();
+        }
 
-        return new self($newHead, $this->length + 1);
+        if ($index === $this->length) {
+            $newTail = $newNode;
+        }
+        return new self($newHead, $newTail, $this->length + 1);
     }
     // methods of removal
     public function removeByValue(mixed $value): self
     {
-        $head = $this->cloneNodes();
 
-        if ($head === null) {
+        if ($this->head === null) {
             throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
         }
+        $head = $this->cloneNodes();
+        if ($this->length === 1) {
+            if ($head->getValue() === $value) {
+                return self::empty();
+            }
+
+            throw new InvalidArgumentException(
+                ErrorMessages::NO_NODE_WITH_THIS_VALUE
+            );
+        }
         if ($head->getValue() === $value) {
-            return new self($head->getNext(), $this->length - 1);
+            $newHead = $head->getNext();
+            $tail = $newHead;
+            for ($i = 1; $i < $this->length - 1; $i++) {
+                $tail = $tail->getNext();
+            }
+            $tail->setNext($newHead);
+            return new self(
+                $newHead,
+                $tail,
+                $this->length - 1
+            );
         }
         $current = $head;
 
-        while ($current->getNext() !== null) {
-            if ($current->getNext()->getValue() === $value) {
-                $current->setNext($current->getNext()->getNext());
-                return new self($head, $this->length - 1);
+        for ($i = 0; $i < $this->length - 1; $i++) {
+            $next = $current->getNext();
+            if ($next->getValue() === $value) {
+                $current->setNext($next->getNext());
+                $newTail = $current;
+                if ($i !== $this->length - 2) {
+                    $newTail = $this->findTail($head, $this->length - 1);
+                }
+
+                return new self(
+                    $head,
+                    $newTail,
+                    $this->length - 1
+                );
             }
 
-            $current = $current->getNext();
+            $current = $next;
         }
 
         throw new InvalidArgumentException(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
+    }
+
+    private function findTail(SingleLinkedListNode $head,  int $length): SingleLinkedListNode
+    {
+        $current = $head;
+
+        for ($i = 1; $i < $length; $i++) {
+            $current = $current->getNext();
+        }
+
+
+        return $current;
     }
     public function clear(): self
     {
@@ -240,7 +331,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
             throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
         }
 
-        return new self(null, 0);
+        return new self();
     }
     public function clearAndKeepHead(): self
     {
@@ -249,8 +340,12 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         }
 
         $newHead = new SingleLinkedListNode($this->head->getValue());
-
-        return new self($newHead, 1);
+        $newHead->setNext($newHead);
+        return new self(
+            $newHead,
+            $newHead,
+            1
+        );
     }
     // index start from 0
     public function removeAt(int $index): self
@@ -276,9 +371,17 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         $nodeToRemove = $current->getNext();
         $current->setNext($nodeToRemove->getNext());
-        $nodeToRemove->setNext(null);
+        // Removing the tail
 
-        return new self($head, $this->length - 1);
+        $tail = $this->findTail(
+            $head,
+            $this->length - 1
+        );
+        return new self(
+            $head,
+            $tail,
+            $this->length - 1
+        );
     }
     public function removeHead(): self
     {
@@ -286,8 +389,23 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         if ($this->head === null) {
             throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
         }
+        if ($this->length === 1) {
+            return self::empty();
+        }
+
+        $newHead = $this->cloneNodes();
+
+        $newHead = $newHead->getNext();
+
+        $newTail = $newHead;
+
+        for ($i = 1; $i < $this->length - 1; $i++) {
+            $newTail = $newTail->getNext();
+        }
+        $newTail->setNext($newHead);
         return new self(
-            $this->head->getNext(),
+            $newHead,
+            $newTail,
             $this->length - 1
         );
     }
@@ -296,21 +414,25 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         if ($this->head === null) {
             throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
         }
-
-        if ($this->head->getNext() === null) {
-            return new self(null, 0);
+        if ($this->length === 1) {
+            return self::empty();
         }
+
+
         $head = $this->cloneNodes();
 
-        $current = $head;
-
-        while ($current->getNext()->getNext() !== null) {
-            $current = $current->getNext();
+        $newTail = $head;
+        for ($i = 1; $i < $this->length - 1; $i++) {
+            $newTail = $newTail->getNext();
         }
 
-        $current->setNext(null);
+        $newTail->setNext($head);
 
-        return new self($head, $this->length - 1);
+        return new self(
+            $head,
+            $newTail,
+            $this->length - 1
+        );
     }
 
     // access
@@ -341,14 +463,12 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
     }
     public function getTail(): SingleLinkedListNode
     {
-        if ($this->head === null) {
-            throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
+        if ($this->tail === null) {
+            throw new InvalidArgumentException(
+                ErrorMessages::LINKEDLIST_IS_EMPTY
+            );
         }
-        $current = $this->head;
-        while ($current->getNext() !== null) {
-            $current = $current->getNext();
-        }
-        return $current;
+        return $this->tail;
     }
     public function contains(mixed $value): SingleLinkedListNode
     {
@@ -356,10 +476,11 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
             throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
         }
         $current = $this->head;
-        while ($current !== null) {
-            if ($current->getValue() == $value) {
+        for ($i = 0; $i < $this->length; $i++) {
+            if ($current->getValue() === $value) {
                 return $current;
             }
+
             $current = $current->getNext();
         }
         throw new InvalidArgumentException(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
@@ -371,13 +492,11 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         }
 
         $current = $this->head;
-        $currentIndex = 0;
-        while ($current !== null) {
-            if ($current->getValue() == $value) {
+        for ($currentIndex = 0; $currentIndex < $this->length; $currentIndex++) {
+            if ($current->getValue() === $value) {
                 return $currentIndex;
             }
             $current = $current->getNext();
-            $currentIndex++;
         }
 
         throw new InvalidArgumentException(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
@@ -386,18 +505,36 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
     // two pointer solution
     public function reverse(): self
     {
-        $current = $this->head;
-        $previous = null;
-        if (is_null($current)) {
-            throw new InvalidArgumentException(ErrorMessages::LINKEDLIST_IS_EMPTY);
+        if ($this->head === null) {
+            throw new InvalidArgumentException(
+                ErrorMessages::LINKEDLIST_IS_EMPTY
+            );
         }
-        while ($current !== null) {
+
+        if ($this->length === 1) {
+            return new self(
+                $this->head,
+                $this->tail,
+                1
+            );
+        }
+        $head = $this->cloneNodes();
+        $current = $head;
+        $previous = null;
+        for ($i = 0; $i < $this->length; $i++) {
             $next = $current->getNext();
             $current->setNext($previous);
             $previous = $current;
             $current = $next;
         }
-        return new self($previous, $this->length);
+        $newHead = $previous;
+        $newTail = $head;
+        $newTail->setNext($newHead);
+        return new self(
+            $newHead,
+            $newTail,
+            $this->length
+        );
     }
     public function toArray(): array
     {
@@ -407,7 +544,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         $current = $this->head;
 
         $nodesArray = [];
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             $nodesArray[] = $current;
             $current = $current->getNext();
         }
@@ -421,7 +558,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
         $current = $this->head;
 
         $nodesArray = [];
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             $nodesArray[] = $current->getValue();
             $current = $current->getNext();
         }
@@ -438,7 +575,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         $current = $this->head;
 
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             $values[] = $fn($current->getValue());
             $current = $current->getNext();
         }
@@ -455,7 +592,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         $current = $this->head;
 
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             $value = $current->getValue();
 
             if ($fn($value)) {
@@ -473,7 +610,7 @@ class SingleLinkedList implements IteratorAggregate, ILinkedList
 
         $current = $this->head;
 
-        while ($current !== null) {
+        for ($i = 0; $i < $this->length; $i++) {
             $carry = $fn($carry, $current->getValue());
             $current = $current->getNext();
         }

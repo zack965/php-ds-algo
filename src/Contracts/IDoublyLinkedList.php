@@ -12,6 +12,7 @@ interface IDoublyLinkedList
 
     // Iterator
     public function getIterator(): \Traversable;
+    public static function empty(): self;
 
     // Creation (static methods cannot be enforced in interface in PHP)
     // so we only document them here, not enforce

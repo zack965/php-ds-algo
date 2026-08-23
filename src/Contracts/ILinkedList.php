@@ -3,7 +3,7 @@
 namespace Zack\PhpDsAlgo\Contracts;
 
 use Zack\PhpDsAlgo\DataStructure\LinkedList\Single\SingleLinkedListNode;
-
+// This is for single linked list
 interface ILinkedList
 {
     // Meta
@@ -15,6 +15,7 @@ interface ILinkedList
 
     // Creation (static methods cannot be enforced in interface in PHP)
     // so we only document them here, not enforce
+    public static function empty(): self;
 
     // Insertions
     public function prepend(mixed $value): self;

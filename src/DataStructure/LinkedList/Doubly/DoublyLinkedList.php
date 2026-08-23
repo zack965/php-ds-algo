@@ -36,7 +36,7 @@ class DoublyLinkedList implements IteratorAggregate, IDoublyLinkedList
     }
     public static function empty(): self
     {
-        return new self(null, 0);
+        return new self();
     }
     /**
      * ofObjects
