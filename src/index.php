@@ -4,6 +4,7 @@ use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
 use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
 use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Strings\KMP;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
 use Zack\PhpDsAlgo\DataStructure\Heap\MaxHeap;
@@ -57,8 +58,10 @@ $heap->insert(2); */
 
 
 
-$hashTable = new HashTable();
+/* $hashTable = new HashTable();
 
 $hashTable->insert('apple');
 
-var_dump($hashTable);
+var_dump($hashTable); */
+
+KMP::run("hello", "h");
