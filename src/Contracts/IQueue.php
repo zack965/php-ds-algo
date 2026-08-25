@@ -4,6 +4,7 @@
 namespace Zack\PhpDsAlgo\Contracts;
 
 use Countable;
+use InvalidArgumentException;
 
 interface IQueue extends Countable
 {

@@ -25,4 +25,13 @@ class AlgorythmesGlobalHelpers
         $nums[$startIndex] = $nums[$endIndex];
         $nums[$endIndex] = $temp;
     }
+    public static function isOdd(int $value): bool
+    {
+        return $value % 2 !== 0;
+    }
+
+    public static function isEven(int $value): bool
+    {
+        return $value % 2 === 0;
+    }
 }
