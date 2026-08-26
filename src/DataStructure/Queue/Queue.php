@@ -8,7 +8,7 @@ use Zack\PhpDsAlgo\Contracts\IQueue;
 
 class Queue implements IQueue
 {
-    public function __construct(private array $items = []) {}
+    public function __construct(protected array $items = []) {}
 
     private int $maxCapacity;
 
