@@ -5,8 +5,9 @@ namespace Tests\Unit;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
+use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
-class ArraySortAlgorythmesTest extends TestCase
+class SortingAlgorithmsTest extends TestCase
 {
     // --- selectionSort ---
 
@@ -63,7 +64,7 @@ class ArraySortAlgorythmesTest extends TestCase
     {
         $nums = [1, 2, 3];
 
-        ArraySortAlgorythmes::swapValuesOfArray($nums, 0, 2);
+        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2);
 
         $this->assertSame([3, 2, 1], $nums);
     }
@@ -72,7 +73,7 @@ class ArraySortAlgorythmesTest extends TestCase
     {
         $nums = [1, 2, 3];
 
-        ArraySortAlgorythmes::swapValuesOfArray($nums, 1, 1);
+        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 1, 1);
 
         $this->assertSame([1, 2, 3], $nums);
     }
@@ -84,7 +85,7 @@ class ArraySortAlgorythmesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Start index 99 does not exist in the array.');
 
-        ArraySortAlgorythmes::swapValuesOfArray($nums, 99, 0);
+        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 99, 0);
     }
 
     public function testSwapValuesOfArrayThrowsWhenEndIndexMissing(): void
@@ -94,6 +95,6 @@ class ArraySortAlgorythmesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('End index 99 does not exist in the array.');
 
-        ArraySortAlgorythmes::swapValuesOfArray($nums, 0, 99);
+        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 99);
     }
 }
