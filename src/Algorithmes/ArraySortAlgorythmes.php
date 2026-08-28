@@ -3,10 +3,21 @@
 
 namespace Zack\PhpDsAlgo\Algorithmes;
 
+use Zack\PhpDsAlgo\DataStructure\Heap\MinHeap;
 use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
 class ArraySortAlgorythmes
 {
+    public static function heapSort(array $data): array
+    {
+        $sorted = [];
+        $minHeap = new MinHeap($data);
+        $size = $minHeap->size();
+        for ($i = 0; $i < $size; $i++) {
+            $sorted[] = $minHeap->extract();
+        }
+        return $sorted;
+    }
     /* public static function selectionSort(array $nums): array
     {
         $length_nums = count($nums);
