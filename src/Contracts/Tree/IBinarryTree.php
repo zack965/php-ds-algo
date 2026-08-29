@@ -1,10 +1,9 @@
 <?php
 
-namespace Zack\PhpDsAlgo\Contracts;
+namespace Zack\PhpDsAlgo\Contracts\Tree;
 
-use Countable;
+
 use IteratorAggregate;
-use Traversable;
 use Zack\PhpDsAlgo\DataStructure\Tree\BinaryTreeNode;
 
 /**
@@ -14,47 +13,12 @@ use Zack\PhpDsAlgo\DataStructure\Tree\BinaryTreeNode;
  *
  * @extends IteratorAggregate<int, T>
  */
-interface IBinaryTree extends Countable, IteratorAggregate
+interface IBinaryTree extends ITree
 {
     /**
      * Returns the root node.
-     *
-     * @return BinaryTreeNode<T>|null
      */
     public function getRoot(): ?BinaryTreeNode;
-
-
-
-    /**
-     * Determines whether the tree is empty.
-     *
-     * @return bool
-     */
-    public function isEmpty(): bool;
-
-    /**
-     * Removes all nodes from the tree.
-     *
-     * @return void
-     */
-    public function clear(): void;
-
-    /**
-     * Returns the height of the tree.
-     *
-     * @return int
-     */
-    public function getHeight(): int;
-
-    /**
-     * Determines whether the tree contains the given value.
-     *
-     * @param T $value
-     *
-     * @return bool
-     */
-    public function contains(mixed $value): bool;
-
     /**
      * Returns the values using preorder traversal.
      *
@@ -76,12 +40,6 @@ interface IBinaryTree extends Countable, IteratorAggregate
      */
     public function postOrder(): array;
 
-    /**
-     * Returns the values using level-order traversal.
-     *
-     * @return list<T>
-     */
-    public function levelOrder(): array;
 
     /**
      * Determines whether the tree is full.
@@ -111,19 +69,7 @@ interface IBinaryTree extends Countable, IteratorAggregate
      */
     public function isBalanced(): bool;
 
-    /**
-     * Returns an iterator over the tree values.
-     *
-     * @return Traversable<int, T>
-     */
-    public function getIterator(): Traversable;
 
-    /**
-     * Returns the number of nodes in the tree.
-     *
-     * @return int
-     */
-    public function count(): int;
 
     /**
      * Insert a value at the next available position (heap-like insertion).
@@ -149,12 +95,7 @@ interface IBinaryTree extends Countable, IteratorAggregate
      */
     public function search(mixed $value): ?BinaryTreeNode;
 
-    /**
-     * Convert tree to array representation (level-order).
-     *
-     * @return list<T>
-     */
-    public function toArray(): array;
+
 
     /**
      * Get the diameter (longest path) of the tree.

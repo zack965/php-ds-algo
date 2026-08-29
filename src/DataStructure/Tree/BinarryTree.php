@@ -8,7 +8,7 @@ use IteratorAggregate;
 use Traversable;
 use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
 use Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms;
-use Zack\PhpDsAlgo\Contracts\IBinaryTree;
+use Zack\PhpDsAlgo\Contracts\Tree\IBinaryTree;
 use Zack\PhpDsAlgo\DataStructure\Queue\Queue;
 use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
 
@@ -20,121 +20,15 @@ use Zack\PhpDsAlgo\Helpers\Algorythmes\AlgorythmesGlobalHelpers;
  * @implements IBinaryTree<T>
  * @implements IteratorAggregate<int, T>
  */
-class BinaryTree implements IBinaryTree
+class BinaryTree extends AbstractTree implements IBinaryTree
 {
     private int $maxDiameter = 0;
 
-    /**
-     * @var BinaryTreeNode<T>|null
-     */
-    private ?BinaryTreeNode $root = null;
-    private int $size = 0;
-    /**
-     * @param list<T> $values
-     */
-    public function __construct(array $values = [])
-    {
-        if (empty($values)) {
-            return;
-        }
-        $nodes = $this->buildNodes($values);
-        $this->connectNodes($values, $nodes);
-
-        $this->size = count($values) - 1;
-    }
-    /**
-     * @param list<T> $values
-     * @return list<BinaryTreeNode<T>>
-     */
-    private function buildNodes(array $values): array
-    {
-        $nodes = [];
-        foreach ($values as $value) {
-            $nodes[] = new BinaryTreeNode($value);
-        }
-        return $nodes;
-    }
-    /**
-     * @param list<T> $values
-     * @param list<BinaryTreeNode<T>> $nodes
-     */
-    private function connectNodes(array $values, array $nodes)
-    {
-        for ($i = 0; $i < count($values); $i++) {
-            $currentNode = $nodes[$i];
-
-            if ($i == 0) {
-                $this->root = $currentNode;
-            } else {
-                $parentIndex = $this->getParentIndex($i);
-                $parentNode = $nodes[$parentIndex];
-                if (AlgorythmesGlobalHelpers::isOdd($i)) {
-                    // left
-                    $parentNode->setLeft($currentNode);
-                }
-                if (AlgorythmesGlobalHelpers::isEven($i)) {
-                    // right
-                    $parentNode->setRight($currentNode);
-                }
-            }
-        }
-    }
-
-    private function getLeftChildIndex(int $index): int
-    {
-        return 2 * $index + 1;
-    }
-
-    private function getRightChildIndex(int $index): int
-    {
-        return 2 * $index + 2;
-    }
-
-    private function getParentIndex(int $index): int
-    {
-        return (int) floor(($index - 1) / 2);
-    }
-    public function getRoot(): ?BinaryTreeNode
-    {
-        return $this->root;
-    }
-
-
-
-
-    public function isEmpty(): bool
-    {
-        return $this->size === 0;
-    }
-
-    public function clear(): void
-    {
-        $this->root = null;
-        $this->size = 0;
-    }
-
-    public function getHeight(): int
-    {
-        return $this->getNodeHeight($this->root);
-    }
-    private function getNodeHeight(?BinaryTreeNode $node)
-    {
-        if (is_null($node)) {
-            return -1;
-        }
-        $leftNodeHeight = $this->getNodeHeight($node->getLeft());
-        $rightNodeHeight = $this->getNodeHeight($node->getRight());
-        return 1 + max($leftNodeHeight, $rightNodeHeight);
-    }
 
     /**
      * @param T $value
      */
-    public function contains(mixed $value): bool
-    {
-        $results = $this->inOrder();
-        return GeneralArrayAlgorithms::contains($results, $value);
-    }
+
 
     /**
      * @return list<T>
@@ -193,30 +87,7 @@ class BinaryTree implements IBinaryTree
         $results[] = $node->getValue();
     }
 
-    /**
-     * @return list<T>
-     */
-    public function levelOrder(): array
-    {
-        if (is_null($this->root)) {
-            return [];
-        }
-        $queue = new Queue();
-        $queue->enqueue($this->root);
-        $results = [];
-        while (!$queue->isEmpty()) {
-            /** @var BinaryTreeNode<T> $node */
-            $node = $queue->dequeue();
-            $results[] = $node->getValue();
-            if ($node->getLeft()) {
-                $queue->enqueue($node->getLeft());
-            }
-            if ($node->getRight()) {
-                $queue->enqueue($node->getRight());
-            }
-        }
-        return $results;
-    }
+
 
     public function isFull(): bool
     {
@@ -292,7 +163,7 @@ class BinaryTree implements IBinaryTree
         return $this->size == $expectedSize;
     }
 
-    private function isLeaf(?BinaryTreeNode $node): bool
+    protected function isLeaf(?BinaryTreeNode $node): bool
     {
         return !is_null($node)
             && is_null($node->getLeft())
@@ -318,30 +189,8 @@ class BinaryTree implements IBinaryTree
         return 1 + max($leftHeight, $rightHeight);
     }
 
-    private function generateTraversal(?BinaryTreeNode $node): Generator
-    {
-        if (is_null($node)) {
-            return;
-        }
 
-        yield from $this->generateTraversal($node->getLeft());
-        yield $node->getValue();
-        yield from $this->generateTraversal($node->getRight());
-    }
 
-    /**
-     * @return Traversable<int, T>
-     */
-    public function getIterator(): Traversable
-    {
-        return $this->generateTraversal($this->root);
-    }
-
-    public function count(): int
-    {
-
-        return $this->size;
-    }
     public function insert(mixed $value): static
     {
         $newNode = new BinaryTreeNode($value);
@@ -479,10 +328,6 @@ class BinaryTree implements IBinaryTree
         return null;
     }
 
-    public function toArray(): array
-    {
-        return $this->levelOrder();
-    }
 
 
 
