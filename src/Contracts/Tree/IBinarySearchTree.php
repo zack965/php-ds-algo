@@ -12,7 +12,7 @@ use Zack\PhpDsAlgo\DataStructure\Tree\BinaryTreeNode;
  * @template T
  * @extends IBinaryTree<T>
  */
-interface IBinarySearchTree extends IBinaryTree
+interface IBinarySearchTree extends ITree
 {
     /**
      * Returns the node containing the minimum value.

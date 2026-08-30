@@ -163,12 +163,7 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return $this->size == $expectedSize;
     }
 
-    protected function isLeaf(?BinaryTreeNode $node): bool
-    {
-        return !is_null($node)
-            && is_null($node->getLeft())
-            && is_null($node->getRight());
-    }
+
     public function isBalanced(): bool
     {
         return $this->checkBalance($this->root) !== -1;

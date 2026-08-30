@@ -28,7 +28,7 @@ abstract class AbstractTree implements ITree
     /**
      * @param list<T> $values
      */
-    public function __construct(array $values = [])
+ /*    public function __construct(array $values = [])
     {
         if (empty($values)) {
             return;
@@ -38,7 +38,7 @@ abstract class AbstractTree implements ITree
 
         $this->size = count($values) - 1;
     }
-
+ */
 
     /**
      * @param list<T> $values
@@ -226,5 +226,37 @@ abstract class AbstractTree implements ITree
     public function count(): int
     {
         return $this->size;
+    }
+    protected function isLeaf(?BinaryTreeNode $node): bool
+    {
+        return !is_null($node)
+            && is_null($node->getLeft())
+            && is_null($node->getRight());
+    }
+    protected function hasOneChild(?BinaryTreeNode $node): bool
+    {
+        return !is_null($node)
+            && (
+                (is_null($node->getLeft()) && !is_null($node->getRight()))
+                || (!is_null($node->getLeft()) && is_null($node->getRight()))
+            );
+    }
+    protected function hasLeftChild(?BinaryTreeNode $node): bool
+    {
+        return !is_null($node)
+            && !is_null($node->getLeft());
+    }
+
+    protected function hasRightChild(?BinaryTreeNode $node): bool
+    {
+        return !is_null($node)
+            && !is_null($node->getRight());
+    }
+
+    protected function hasTwoChildren(?BinaryTreeNode $node): bool
+    {
+        return !is_null($node)
+            && !is_null($node->getLeft())
+            && !is_null($node->getRight());
     }
 }
