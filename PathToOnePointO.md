@@ -33,11 +33,34 @@ internal `Set` per bucket let a caller corrupt the table by mutating it
 directly); and `HashTable`/`HashSet::serializeKey()` now explicitly reject
 closures (previously silently accepted via an object-identity shortcut that
 bypassed `serialize()`'s natural rejection) — `HashMap` already rejected
-closure keys correctly, now with an explicit check too._
+closure keys correctly, now with an explicit check too; updated 2026-09-12 to
+reflect the M2 tree/deque/heap-sort/string-matching gaps closing: `BinaryTree`
+(+ `AbstractTree`, `BinaryTreeNode`) and `BinarySearchTree` (DSW rebalancing)
+both landed with full test suites, `Deque` and `CircularLinkedList` gained
+their test suites too, `heapSort()`/`bucketSort()` (the latter not originally
+scoped for M2, gained an `int|float`-only guard) rounded
+`ArraySortAlgorythmes` out to 100% method/line coverage, and `KMP` (string
+substring search) closed the string-matching gap — see the M2 items below for
+details. `Queue`'s `maxCapacity` was redesigned (now defaults to
+`PHP_INT_MAX` with real validation, instead of an uninitialized typed
+property callers had to remember to set first) since `BinaryTree`/
+`AbstractTree`/`BinarySearchTree` all use a bare `new Queue()` internally for
+BFS-style traversals. Writing tests for the tree classes surfaced three real
+bugs, now fixed (`BinarySearchTree::isValid()` crashing via a
+non-nullable-when-it-needed-to-be-nullable parameter; `BinaryTree::isBalanced()`
+always returning `false` via a height-vs-imbalance sentinel collision;
+`BinaryTree::getDiameter()` off by one edge) — see the M2 tree item below for
+the specifics. Also fixed: `src/DataStructure/Tree/BinarryTree.php` /
+`IBinarryTree.php` were misspelled filenames declaring correctly-spelled
+`BinaryTree`/`IBinaryTree` classes inside, a PSR-4 mismatch that made both
+completely unreachable via normal autoloading — renamed to match, no code
+changed. And `src/SortingAlgorithms.php` (M1 below) is confirmed gone, along
+with the `tests/Unit/SortingAlgorithmsTest.php` that had been orphaned
+re-testing already-covered methods after it was deleted._
 
 ## Where it stands today
 
-- 841 tests / 1484 assertions, all green, but **7 PHPUnit deprecations**
+- 1167 tests / 1975 assertions, all green, but **7 PHPUnit deprecations**
   (unchanged from before — still M1 work, see below).
 - Data structures: `SingleLinkedList`, `DoublyLinkedList` (full parity, incl.
   insert-before/after), `ArrayStack`, `Queue`, `Graph` (directed/undirected,
@@ -67,8 +90,16 @@ closure keys correctly, now with an explicit check too._
   reliably findable *and* removable; `update()` never throws, returning
   `false`/`true` instead for an unhashable value or a no-op rename;
   deliberately has no `getBucket()`/`getBuckets()`, unlike `HashTable`/
-  `HashMap` where those existed and were removed — see below).
-- Algorithms: sorting (bubble/selection/insertion/merge/quick), searching
+  `HashMap` where those existed and were removed — see below), `Deque`
+  (extends `Queue`, `IDeque` contract; see M2 below), `CircularLinkedList`
+  (`src/DataStructure/LinkedList/Single/` — same persistent/clone-then-splice
+  pattern as `SingleLinkedList`, but the tail's `next` wraps back to the
+  head; 90.62% method / 99.07% line coverage), and the tree family —
+  `BinaryTree`/`BinarySearchTree` over shared `AbstractTree`/`BinaryTreeNode`
+  (mutable, not persistent, unlike the linked lists; see M2 below).
+- Algorithms: sorting (bubble/selection/insertion/merge/quick/heap/bucket —
+  the last two closing the M2 heap-sort gap and rejecting non-`int|float`
+  input respectively, see M2 below), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
   sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
   distance, Dijkstra's shortest path (`DijkstraAlgorithm`/
@@ -80,7 +111,8 @@ closure keys correctly, now with an explicit check too._
   is a public, NaN-aware equality helper (strict `===`, except two `NAN`
   floats compare equal) shared by `contains()`/`remove()` internally and
   called directly by `Set::indexOf()`/`HashSet::update()`, used throughout
-  `Set`/`HashSet`).
+  `Set`/`HashSet`), and KMP substring search (`Strings\KMP`,
+  `calculateLspTable()` + `run()`, 100% method/line coverage; see M2 below).
 - Docs are already strong: 60KB+ README, `CONTRIBUTING.md`, `Graph.md`,
   `features.md` (conventions + backlog), `TODO.md` (ranked backlog), and a
   16-article `articles/` walkthrough series (`00-overview.md` through
@@ -121,10 +153,10 @@ Concretely:
    algorithm family except Levenshtein was array sorting/searching: no tree,
    no heap, no hash table, no shortest-path algorithm, no DP beyond one
    edit-distance example, no string-matching algorithm. Heap, shortest-path
-   (Dijkstra), and hash table are now closed (see M2 below); tree, deque, heap
-   sort, topological sort, DP, and string-matching remain gaps. Those are the
-   structures/algorithms anyone evaluating a "data structures and algorithms"
-   library checks for first — see the curated list in M2 below.
+   (Dijkstra), hash table, tree, deque, heap sort, and string-matching are
+   now closed (see M2 below); topological sort and DP remain gaps. Those are
+   the structures/algorithms anyone evaluating a "data structures and
+   algorithms" library checks for first — see the curated list in M2 below.
 6. **A documented BC/versioning policy** (`CHANGELOG.md` + a stated semver
    commitment in the README) so 1.0 actually means something to consumers.
 7. Everything past the M2 list (tries, balanced trees, skip lists,
@@ -139,11 +171,15 @@ Concretely:
       `composer validate --no-check-all --strict`, `php -l` over `src/`.
       Matrix at least the PHP version(s) `composer.json` claims to support.
 - [ ] Fix the 7 PHPUnit deprecations so `composer test` is clean.
-- [ ] Resolve `src/SortingAlgorithms.php`: either delete it (it's a pure
+- [x] Resolve `src/SortingAlgorithms.php`: either delete it (it's a pure
       duplicate of `ArraySortAlgorythmes`'s selection sort) or mark it
       `@deprecated` with a `trigger_error(E_USER_DEPRECATED)` and a removal
       note in the new `CHANGELOG.md`. Deleting is cleaner pre-1.0 since no BC
-      promise exists yet — do it now rather than carry it into 1.0.
+      promise exists yet — do it now rather than carry it into 1.0. **Done**
+      — the file itself is gone; `tests/Unit/SortingAlgorithmsTest.php` (an
+      orphaned duplicate left re-testing `ArraySortAlgorythmes::selectionSort()`
+      and `AlgorythmesGlobalHelpers::swapValuesOfArray()`, both already
+      covered by their own test files) was deleted alongside it.
 - [ ] Add `phpstan` (or `psalm`) at a reasonable level, wire it into CI.
 - [ ] Close the method-coverage gaps flagged in the last coverage run:
       `GraphDirectedCycleDetector` (50% methods), `DoublyLinkedList` /
@@ -170,12 +206,58 @@ item is now done (see below), the rest of this list is still open:
 
 **Data structures**
 
-- [ ] **Binary Search Tree** — `TODO.md` #6, `features.md` §2's `IBinaryTree`
+- [x] **Binary Search Tree** — `TODO.md` #6, `features.md` §2's `IBinaryTree`
       contract (insert/remove/contains, height, in/pre/post/level-order
-      traversals). The first non-linear structure besides `Graph`; forces the
-      immutable/persistent pattern (clone-then-splice, per `CLAUDE.md`) to
-      prove out on a branching structure. Biggest single credibility jump.
-      `src/DataStructure/Tree/BST/`, `tests/Unit/DataStructure/Tree/BST/BSTTest.php`.
+      traversals). The first non-linear structure besides `Graph`. **Done**
+      — landed as a *mutable* tree, not the clone-then-splice persistent
+      pattern the linked lists use (each node's children are set in place;
+      `insert()`/`remove()`/`balance()` mutate and return `$this`, matching
+      `ArrayStack`/`Queue`/`Graph`/the heaps rather than `SingleLinkedList`).
+      Two classes share one base: `BinarySearchTree` (`min`/`max`,
+      `predecessor`/`successor`, `floor`/`ceiling`/`findClosest`,
+      `rangeSearch`/`countInRange`, `kthSmallest`/`kthLargest`,
+      `lowestCommonAncestor`, `isValid()`, and `balance()` — a genuine
+      Day-Stout-Warren rebalance, not AVL rotation) and a plain
+      `BinaryTree` (level-order `insert()`/`remove()`/`search()`,
+      `isFull()`/`isComplete()`/`isPerfect()`/`isBalanced()`,
+      `getDiameter()`), both extending shared `AbstractTree`
+      (`getHeight()`/`contains()`/`levelOrder()`/`toArray()`/`getIterator()`
+      — in-order — /`count()`) over a plain `BinaryTreeNode`.
+      `src/DataStructure/Tree/`, `tests/Unit/DataStructure/Tree/`. 82.76%
+      method / 95.45% line coverage on `BinarySearchTree`, 72.22%/95.91% on
+      `BinaryTree`, 100%/100% on `BinaryTreeNode` (the AbstractTree gap is
+      almost entirely a commented-out array-based constructor and its two
+      helpers, dead code with no live caller). Two blocking issues surfaced
+      while writing that test suite, both fixed:
+      1. The plain-tree files were misspelled (`BinarryTree.php`,
+         `IBinarryTree.php`) while declaring correctly-spelled
+         `BinaryTree`/`IBinaryTree` classes — a PSR-4 mismatch that made
+         both entirely unreachable via normal autoloading. Renamed to match;
+         no code inside changed.
+      2. Every BFS-based method across `AbstractTree` (`contains()`,
+         `levelOrder()`) and both tree classes (`BinarySearchTree::min()`/
+         `max()`; `BinaryTree::isComplete()`/`insert()`/`remove()`/`search()`)
+         built a bare `new Queue()` and called `enqueue()` on it without
+         ever setting a capacity — crashing on `Queue`'s previously
+         uninitialized-by-default `$maxCapacity`. Fixed by giving `Queue` a
+         `PHP_INT_MAX` default (see "Where it stands today" above), not by
+         patching each of the 8 call sites individually.
+
+      Three further, purely logical bugs were found and fixed along the way:
+      `BinarySearchTree::isValid()` crashed with a `TypeError` on any
+      non-empty tree (its private `inOrderCheck()` helper was missing the
+      `?` on an otherwise-nullable parameter, yet was always first called
+      with a leaf's `null` child — every sibling recursive helper in the
+      class has the `?`, this one didn't); `BinaryTree::isBalanced()` always
+      returned `false` (its balance-checking recursion used one value to
+      mean both "this child is empty" and "an imbalance was found
+      downstream," so a leaf's two empty children looked identical to a
+      detected imbalance and that false signal propagated to the root); and
+      `BinaryTree::getDiameter()` was off by one edge (the diameter-through-a-node
+      formula needed `leftHeight + rightHeight + 2`, not `+ 1`, once
+      reconciled against the height-return convention it shares with
+      `AbstractTree::getNodeHeight()`). Documented in the README and a new
+      [`articles/16-binary-search-tree.md`](articles/16-binary-search-tree.md).
 - [x] **Binary Heap / Priority Queue** (min- and max-heap) — every algorithms
       book pairs this with BST and with Dijkstra below; also unblocks heap
       sort. `src/DataStructure/Heap/`. **Done** — `AbstractBinaryHeap` +
@@ -227,14 +309,23 @@ item is now done (see below), the rest of this list is still open:
       alongside these two as `Set`'s hashed sibling — see the "Where it
       stands today" entry above; not part of this curated M2 item, a small
       extra the same way `Set` was.
-- [ ] **Deque** (double-ended queue) — new `IDeque` contract per `TODO.md` #5;
-      completes the queue family and gives a real backing for
-      `IQueue::isFull()`-style bounded variants later.
+- [x] **Deque** (double-ended queue) — new `IDeque` contract per `TODO.md`
+      #5; completes the queue family and gives a real backing for
+      `IQueue::isFull()`-style bounded variants later. **Done** — extends
+      `Queue`, adding `enqueueFront()` (unlike inherited `enqueue()`, doesn't
+      check `isFull()`) and `dequeueTail()` (unlike inherited `dequeue()`,
+      returns `null` instead of throwing on empty — `array_pop()`'s own
+      behavior on an empty array). `src/DataStructure/Queue/Deque.php`,
+      `tests/Unit/DataStructure/Queue/DequeTest.php`, 100% method/line
+      coverage, documented in the README and
+      [`articles/04-queue.md`](articles/04-queue.md).
 
 **Algorithms**
 
-- [ ] **Heap sort** — natural pairing now that the heap exists; extends
-      `ArraySortAlgorythmes`.
+- [x] **Heap sort** — natural pairing now that the heap exists; extends
+      `ArraySortAlgorythmes`. **Done** — `ArraySortAlgorythmes::heapSort()`,
+      backed by `MinHeap`. 100% method/line coverage across the whole class
+      (see the bucket sort entry below and the M1 note above).
 - [x] **Dijkstra's shortest path** on `Graph` — BFS/DFS and cycle detection
       exist but couldn't answer "shortest path," one of the two questions
       people reach for a graph library to answer. **Done** —
@@ -253,8 +344,17 @@ item is now done (see below), the rest of this list is still open:
 - [ ] **One DP algorithm beyond edit distance** — 0/1 knapsack or LCS,
       whichever is smaller to implement well; proves DP is a supported
       category, not a one-off next to `LevenshteinDistance`.
-- [ ] **One string algorithm** — KMP substring search; the other conspicuous
-      category gap (searching currently only covers array search).
+- [x] **One string algorithm** — KMP substring search; the other conspicuous
+      category gap (searching currently only covers array search). **Done**
+      — `Zack\PhpDsAlgo\Algorithmes\Strings\KMP`, `calculateLspTable()` plus
+      `run()`, 100% method/line coverage, documented in the README and a new
+      [`articles/17-kmp.md`](articles/17-kmp.md).
+
+  Not part of this curated M2 list, but shipped alongside it while
+  `ArraySortAlgorythmes` was being brought to 100% coverage anyway:
+  **bucket sort** (`bucketSort()`) — rejects any element that isn't `int`
+  or `float` with `InvalidArgumentException` (checked up front, before any
+  bucketing work runs).
 
 Follow existing conventions for all of the above: immutable/static-factory
 style where a data structure, `ErrorMessages` constants for errors, contracts
@@ -302,7 +402,9 @@ Pulled forward from `TODO.md`/`features.md` so this doc doesn't duplicate
 them — they remain valid, ranked backlog for *after* 1.0 ships:
 
 - Linked-list-backed Stack/Queue, circular-buffer queue.
-- Additional sorts (shell, counting, radix, bucket) — heap sort moved into M2.
+- Additional sorts (shell, counting, radix) — heap sort and bucket sort both
+  shipped alongside M2 (bucket sort wasn't originally scoped for M2 either,
+  see above).
 - Dynamic/variable-size sliding window, monotonic-deque min/max window.
 - Undirected-graph cycle detection, Bellman-Ford, Kruskal's/Prim's MST, A*
   — topological sort stays in M2 (still open); Dijkstra was in M2 and is

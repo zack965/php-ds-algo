@@ -16,8 +16,17 @@ with what's already here (`SingleLinkedList`, `DoublyLinkedList`, `ArraySortAlgo
 - **Immutable / persistent style**: private constructor, only reachable through static
   factories (`empty()`, `of(array $values)`, `fromIterable(iterable $values)`,
   `fromNodes(array $nodes)` where nodes make sense). Every mutating-looking method
-  (`append`, `insert`, `removeAt`, `push`, `pop`, ...) clones the internal structure and
-  returns a **new instance** — never mutate `$this` in place.
+  (`append`, `insert`, `removeAt`, ...) clones the internal structure and
+  returns a **new instance** — never mutate `$this` in place. **In practice this only
+  ever ended up applying to the linked lists** (`SingleLinkedList`, `DoublyLinkedList`,
+  `CircularLinkedList`) — every other structure shipped since (`ArrayStack`, `Queue`/
+  `Deque`, `Graph`, `MinHeap`/`MaxHeap`/`PriorityQueue`, `HashTable`/`HashMap`/`HashSet`,
+  `BinaryTree`/`BinarySearchTree`) is an ordinary mutable container (`push`/`pop`,
+  `enqueue`/`dequeue`, `insert`/`remove`, ... change `$this` directly, most returning it
+  for chaining) — see `articles/00-overview.md` §1 for the reasoning. Treat *that* as the
+  default for new non-list structures instead of this bullet; reach for the
+  clone-and-return pattern specifically when a structure's whole value proposition is
+  structural sharing, the way the linked lists' is.
 - **Errors**: reuse `Zack\PhpDsAlgo\Constants\ErrorMessages`, throw
   `InvalidArgumentException`. Add new constants there instead of inlining strings
   (`DoublyLinkedList::insert`/`removeByValue` still inline messages in a few spots —
@@ -122,6 +131,20 @@ interface IBinaryTree
     public function postOrder(): array;
     public function levelOrder(): array;
 }
+```
+
+> This sketch predates the real trees landing (see §3 and §5 below) — as
+> with the `IStack`/`IQueue` sketches above, it was never rewritten to match
+> the shipped shape once implemented. The real contracts now live in
+> `src/Contracts/Tree/` (`ITree`, `IBinaryTree`, `IBinarySearchTree`), split
+> across a shared `ITree` base plus two mutable classes,
+> `Zack\PhpDsAlgo\DataStructure\Tree\BinaryTree` and `BinarySearchTree`
+> (`height()` above is `getHeight()` there; `contains`/traversals/`getRoot()`
+> live on the shared `ITree`/`AbstractTree`, not duplicated per tree type) —
+> see [`articles/16-binary-search-tree.md`](articles/16-binary-search-tree.md)
+> for the actual shape.
+
+```php
 
 interface IGraph
 {
@@ -291,14 +314,23 @@ other the way they did before this helper existed.
 Immediate / already flagged in code:
 - **Doubly linked list**: `insertBefore(NodeType $node, mixed $value)` and
   `insertAfter(NodeType $node, mixed $value)` — flagged in `TODO.md`.
-- **Circular linked list** (singly and doubly variants).
+- **Circular linked list** — singly-linked variant **done**
+  (`CircularLinkedList`, `src/DataStructure/LinkedList/Single/`, same
+  persistent/clone-then-splice pattern as `SingleLinkedList` but the tail's
+  `next` wraps back to the head instead of `null`); doubly-linked circular
+  variant not yet started.
+
+Also done since this list was last updated, so removed from "not yet started"
+below: **Deque** (`Zack\PhpDsAlgo\DataStructure\Queue\Deque`, extends
+`Queue`) and **Binary Search Tree** (`Zack\PhpDsAlgo\DataStructure\Tree\BinarySearchTree`,
+DSW rebalancing via `balance()`, alongside a plain `BinaryTree` over shared
+`AbstractTree`/`BinaryTreeNode` — see the `IBinaryTree` note above and
+[`articles/16-binary-search-tree.md`](articles/16-binary-search-tree.md)).
 
 Not yet started:
 - **Stack** (array-backed and linked-list-backed)
 - **Queue** (array-backed, linked-list-backed, and circular-buffer-backed)
-- **Deque** (double-ended queue)
 - **Priority Queue / Heap** (min-heap and max-heap)
-- **Binary Search Tree**
 - **Balanced trees**: AVL tree, Red-Black tree
 - **Trie** (prefix tree)
 - **Graph** (adjacency list and adjacency matrix, directed/undirected, weighted/unweighted)
@@ -313,11 +345,13 @@ Not yet started:
 ### Sorting (`ArraySortAlgorythmes` currently has bubble/selection/insertion)
 - Merge sort
 - Quick sort
-- Heap sort
 - Shell sort
 - Counting sort
 - Radix sort
-- Bucket sort
+
+Done since this list was last updated: **heap sort** (`heapSort()`, backed
+by `MinHeap`) and **bucket sort** (`bucketSort()`, rejects non-`int|float`
+elements with `InvalidArgumentException`) — both 100% method/line covered.
 
 ### Searching (`ArraySearchAlogorthme` currently has binary/exponential/interpolation/jump)
 - Linear search (baseline, useful for unsorted input / comparison benchmarks)
@@ -357,9 +391,12 @@ Not yet started:
 
 ### String algorithms
 - Naive substring search
-- KMP (Knuth-Morris-Pratt)
 - Rabin-Karp
 - Palindrome checks / longest palindromic substring
+
+Done since this list was last updated: **KMP (Knuth-Morris-Pratt)**
+(`Zack\PhpDsAlgo\Algorithmes\Strings\KMP` — `calculateLspTable()` + `run()`,
+100% method/line coverage).
 
 ### Backtracking
 - N-Queens
@@ -373,5 +410,5 @@ Not yet started:
 2. `Stack` and `Queue` — small, no new interface shape debate, good next structures.
 3. Merge sort / quick sort — natural extensions of `ArraySortAlgorythmes`, reuse
    `AlgorythmesGlobalHelpers::swapValuesOfArray`.
-4. Binary Search Tree — first non-linear structure, a good forcing function for the
-   `IBinaryTree`-style interface above.
+4. ~~Binary Search Tree — first non-linear structure, a good forcing function for the
+   `IBinaryTree`-style interface above.~~ **Done** — see §3 above.

@@ -5,15 +5,43 @@ Reconciled against `src/` as of 2026-08-22 (adds `HashSet`/`IHashSet`; `Set`
 gained `get()`/`indexOf()`/`update()`; `GeneralArrayAlgorithms` gained
 `equals()`; `getBucket()`/`getBuckets()` were removed from `HashTable`/
 `HashMap`/`HashSet` for exposing internal storage; closures are now
-consistently rejected by all three hash structures) — see `features.md` for
-conventions each new structure/algorithm must follow (immutable style,
-`ErrorMessages`, contracts, test layout).
+consistently rejected by all three hash structures); reconciled again as of
+2026-09-12 (`Deque`, `BinaryTree`/`BinarySearchTree`, `CircularLinkedList`
+all landed with full test suites; heap sort and bucket sort finished
+`ArraySortAlgorythmes`; KMP closed the string-matching gap; see each entry
+below for specifics, and `missing.md`/`PathToOnePointO.md` for the fuller
+writeups including the bugs found and fixed along the way) — see
+`features.md` for conventions each new structure/algorithm must follow
+(immutable style, `ErrorMessages`, contracts, test layout — note `features.md`
+§1 itself now flags that "immutable style" turned out to only ever apply to
+the linked lists in practice, not a rule to follow for new non-list
+structures).
 
 ## Already implemented (not action items — listed so this doesn't re-flag them)
 
 - `SingleLinkedList` / `DoublyLinkedList`, both with `insertBefore` / `insertAfter`
+- `CircularLinkedList` (`src/DataStructure/LinkedList/Single/`) — singly-linked,
+  same persistent/clone-then-splice pattern and method surface as
+  `SingleLinkedList` (reuses `SingleLinkedListNode`), but the tail's `next`
+  wraps back to the head instead of `null`. A doubly-linked circular variant
+  is still not implemented. 90.62% method / 99.07% line coverage. A real bug
+  was found writing its tests: `insert()` computed the new tail by walking
+  the *old* length instead of the new (one-longer) one for a genuine middle
+  insert, so the returned list's tracked tail was wrong by one node (though
+  the chain itself, walked by hand, was still correct) — fixed, and
+  `insertBeforeNode()`/`insertAfterNode()` (which delegate to `insert()`)
+  along with it. See `articles/01-single-linked-list.md`.
 - `ArrayStack` (array-backed stack)
-- `Queue` (array-backed queue)
+- `Queue` (array-backed queue) — `maxCapacity` now defaults to `PHP_INT_MAX`
+  with real validation (constructor and `setMaxCapacity()` both reject a
+  capacity smaller than the current/initial item count), replacing an
+  earlier design where the uninitialized-by-default typed property threw a
+  bare PHP `Error` if read before an explicit `setMaxCapacity()` call.
+- `Deque` (`src/DataStructure/Queue/Deque.php`, `IDeque` contract) — extends
+  `Queue`, adding `enqueueFront()` (doesn't check `isFull()`, unlike
+  inherited `enqueue()`) and `dequeueTail()` (returns `null` instead of
+  throwing on empty, unlike inherited `dequeue()`). 100% method/line
+  coverage. See `articles/04-queue.md`.
 - `Graph` + `GraphNode` / `GraphEdge` (directed/undirected, weighted/unweighted, adjacency list,
   adjacency matrix via `getAdjencyMetrix()` / `printAdjacencyMatrix()`)
 - `MinHeap` / `MaxHeap` (array-backed binary heap over `AbstractBinaryHeap` +
@@ -25,8 +53,16 @@ conventions each new structure/algorithm must follow (immutable style,
   constructor argument (`Max` = higher priority extracts first, `Min` =
   lower priority extracts first). Mutable, no static factories, same shape
   as `MinHeap`/`MaxHeap`.
-- Sorting: bubble, selection, insertion, merge, quick
+- Sorting: bubble, selection, insertion, merge, quick, heap, bucket — the
+  last two closed the M2 heap-sort gap (`heapSort()`, backed by `MinHeap`)
+  and shipped alongside it (`bucketSort()`, not originally scoped for M2;
+  rejects any element that isn't `int`/`float` with `InvalidArgumentException`,
+  checked up front before any bucketing work runs). `ArraySortAlgorythmes` is
+  now 100% method/line covered end to end.
 - Searching: binary, exponential, interpolation, jump, linear, ternary, fibonacci
+- String matching: KMP (`Zack\PhpDsAlgo\Algorithmes\Strings\KMP` —
+  `calculateLspTable()` + `run()`, 100% method/line coverage). See
+  `articles/17-kmp.md`.
 - Sliding window: fixed-size
 - Graph traversal: BFS, DFS
 - Graph cycle detection: directed (`GraphDirectedCycleDetector`)
@@ -105,6 +141,44 @@ conventions each new structure/algorithm must follow (immutable style,
   unique-value collection. `HashSet` (below) is its hashed sibling, using a `Set` per bucket.
   Documented in the README under [Set](README.md#set) and in
   [`articles/15-set.md`](articles/15-set.md).
+- `BinaryTree` / `BinarySearchTree` (`src/DataStructure/Tree/`, over a shared
+  `AbstractTree` base and `BinaryTreeNode`; `ITree`/`IBinaryTree`/
+  `IBinarySearchTree` contracts) — the first non-linear structures besides
+  `Graph`. **Mutable**, like `ArrayStack`/`Queue`/the heaps — not the
+  clone-then-splice persistent pattern the linked lists use, despite being
+  tree-shaped. `BinaryTree`: level-order `insert()`/`remove()`/`search()`,
+  `isFull()`/`isComplete()`/`isPerfect()`/`isBalanced()`, `getDiameter()`
+  (allows duplicate values). `BinarySearchTree`: ordered `insert()`/
+  `remove()`/`search()` (duplicates ignored), `min`/`max`,
+  `predecessor`/`successor`, `floor`/`ceiling`/`findClosest`,
+  `rangeSearch`/`countInRange`, `kthSmallest`/`kthLargest`,
+  `lowestCommonAncestor`, `isValid()`, and a genuine Day-Stout-Warren
+  `balance()` (not AVL rotation). 72.22%/95.91% method/line coverage on
+  `BinaryTree`, 82.76%/95.45% on `BinarySearchTree`, 100%/100% on
+  `BinaryTreeNode`. Two blocking issues and three logic bugs surfaced while
+  writing the test suite, all fixed:
+  - The plain-tree files were misspelled on disk (`BinarryTree.php`,
+    `IBinarryTree.php`) while declaring correctly-spelled `BinaryTree`/
+    `IBinaryTree` classes — a PSR-4 mismatch that made both entirely
+    unreachable via normal autoloading. Renamed to match; no code changed.
+  - Every BFS-based method across `AbstractTree`/`BinaryTree`/
+    `BinarySearchTree` built a bare `new Queue()` without ever setting a
+    capacity, crashing under `Queue`'s old uninitialized-by-default
+    `$maxCapacity` (see the `Queue` entry above — fixed there, once, rather
+    than at each of the 8 call sites).
+  - `BinarySearchTree::isValid()` crashed with a `TypeError` on any
+    non-empty tree (a private recursive helper's parameter was missing a
+    `?` it needed).
+  - `BinaryTree::isBalanced()` always returned `false` (a height-tracking
+    recursion reused one value to mean both "this child is empty" and "an
+    imbalance was found downstream").
+  - `BinaryTree::getDiameter()` was off by one edge (needed
+    `leftHeight + rightHeight + 2`, not `+ 1`).
+
+  Documented in the README under
+  [BinaryTree & BinarySearchTree](README.md#binarytree--binarysearchtree)
+  and in [`articles/16-binary-search-tree.md`](articles/16-binary-search-tree.md)
+  (full root-cause writeups for all three logic bugs).
 
 ## Next up (recommended order)
 
@@ -112,30 +186,30 @@ conventions each new structure/algorithm must follow (immutable style,
    array-backed `ArrayStack`/`Queue`, built on `SingleLinkedList`. Low effort,
    no new interface needed (reuse `IStack`/`IQueue`).
 2. **Circular (ring-buffer) Queue** — fixed-capacity queue backed by an array
-   with wraparound indices; gives real meaning to `IQueue::isFull()`.
-3. **Sorting**: heap sort, shell sort, counting sort, radix sort, bucket sort.
+   with wraparound indices; gives real meaning to `IQueue::isFull()`. (Not
+   to be confused with `CircularLinkedList`, already done — see above.)
+3. **Sorting**: shell sort, counting sort, radix sort. (Heap sort and bucket
+   sort are done — see above.)
 4. **Sliding window**: variable-size/dynamic window (grow/shrink on a
    predicate), monotonic-deque-based window max/min.
-5. **Deque** (double-ended queue) — new `IDeque` contract.
-6. **Binary Search Tree** — first non-linear structure besides `Graph`; forces
-   an `IBinaryTree` contract (insert/remove/contains + in/pre/post/level-order
-   traversals, per `features.md` §2).
-7. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
+5. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
    `GraphDirectedCycleDetector`), topological sort, Bellman-Ford,
    Kruskal's / Prim's MST, A*. (Dijkstra is done — see `DijkstraAlgorithm`
    above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
-8. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
+6. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
     **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table and Hash
     Map are done — see `HashTable`/`HashMap` above. A plain unique-value
     `Set` is also done — see `Set` above — but that's not the same as
-    Union-Find/Disjoint Set, which is still open.)
-9. **Algorithm categories not started yet**:
+    Union-Find/Disjoint Set, which is still open. A plain `BinarySearchTree`
+    is also done — see above — AVL/Red-Black are the *balanced* trees still
+    open here.)
+7. **Algorithm categories not started yet**:
     - Dynamic programming: Fibonacci (memoized vs tabulated), LCS, LIS, 0/1
       knapsack, coin change. (Edit distance is done — see `LevenshteinDistance`
       above.)
-    - String algorithms: naive substring search, KMP, Rabin-Karp, palindrome
-      checks / longest palindromic substring.
+    - String algorithms: naive substring search, Rabin-Karp, palindrome
+      checks / longest palindromic substring. (KMP is done — see above.)
     - Backtracking: N-Queens, subsets/permutations/combinations, Sudoku solver.
     - Two pointers: two-sum on sorted array, in-place dedup, container-with-
       most-water style problems.
@@ -147,6 +221,8 @@ conventions each new structure/algorithm must follow (immutable style,
 - No `.github/workflows/` yet — no CI running `composer test` on push/PR.
 - `v0.1.0` is already tagged and published on Packagist
   (packagist.org/packages/zack965/php-ds-algo) as of 2026-07-21.
-- `features.md` §5 ("Suggested next steps") is stale — it still lists
-  insert-before/after, Stack/Queue, and merge/quick sort as pending; needs a
-  pass to reflect what's actually shipped and re-rank against this file.
+- `features.md` §5 ("Suggested next steps") is still stale — it lists
+  insert-before/after, Stack/Queue, and merge/quick sort as pending, which
+  are all done; only its item 4 (Binary Search Tree) has been reconciled so
+  far (now marked done, pointing at §3). Still needs a full pass to reflect
+  everything actually shipped and re-rank against this file.

@@ -9,9 +9,11 @@ A PHP library implementing classic data structures and algorithms from scratch, 
 - [Quick Start](#quick-start)
 - [Data Structures](#data-structures)
   - [SingleLinkedList](#singlelinkedlist)
+  - [CircularLinkedList](#circularlinkedlist)
   - [DoublyLinkedList](#doublylinkedlist)
   - [ArrayStack](#arraystack)
   - [Queue](#queue)
+  - [Deque](#deque)
   - [Graph](#graph)
   - [Heap (MinHeap / MaxHeap)](#heap-minheap--maxheap)
   - [PriorityQueue](#priorityqueue)
@@ -19,9 +21,11 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [HashMap](#hashmap)
   - [Set](#set)
   - [HashSet](#hashset)
+  - [BinaryTree & BinarySearchTree](#binarytree--binarysearchtree)
 - [Algorithms](#algorithms)
   - [Sorting — ArraySortAlgorythmes](#sorting--arraysortalgorythmes)
   - [Searching — ArraySearchAlogorthme](#searching--arraysearchalogorthme)
+  - [String Matching — KMP](#string-matching--kmp)
   - [Sliding Window — SlidingWindow](#sliding-window--slidingwindow)
   - [Edit Distance — LevenshteinDistance](#edit-distance--levenshteindistance)
   - [Graph Traversal — BFS / DFS](#graph-traversal--bfs--dfs)
@@ -164,6 +168,28 @@ All error paths throw `InvalidArgumentException` with a message from `Zack\PhpDs
 
 ---
 
+### CircularLinkedList
+
+`Zack\PhpDsAlgo\DataStructure\LinkedList\Single\CircularLinkedList` — implements `ILinkedList`, `IteratorAggregate`. Same persistent/immutable pattern, static factories, and method surface as `SingleLinkedList` above (reuses `SingleLinkedListNode`) — the one difference is that the tail's `next` wraps back around to the head instead of pointing to `null`:
+
+```php
+use Zack\PhpDsAlgo\DataStructure\LinkedList\Single\CircularLinkedList;
+
+$list = CircularLinkedList::of([1, 2, 3]);
+
+$list->getTail()->getNext() === $list->getHead(); // true — the defining invariant
+
+$list = $list->append(4)->prepend(0);   // [0, 1, 2, 3, 4], still circular
+$list = $list->removeByValue(0);
+$list = $list->reverse();               // old tail becomes new head, still wraps around
+```
+
+Because there's no `null` terminator to stop at, `getIterator()` (and every other traversal) is bounded by the tracked node count rather than a `while ($current !== null)` loop — `foreach` over a `CircularLinkedList` still yields exactly its nodes once each, not forever.
+
+All the same factories/insertion/removal/access/transformation/functional methods as `SingleLinkedList` are supported (`empty`, `of`, `fromNodes`, `fromIterable`, `ofObjects`, `prepend`, `append`, `insert`, `insertBeforeNode`, `insertAfterNode`, `removeByValue`, `removeAt`, `removeHead`, `removeTail`, `clear`, `clearAndKeepHead`, `get`, `getTail`, `contains`, `indexOf`, `reverse`, `toArray`, `toArrayValues`, `map`, `filter`, `reduce`), throwing the same `ErrorMessages`-backed `InvalidArgumentException`s.
+
+---
+
 ### DoublyLinkedList
 
 `Zack\PhpDsAlgo\DataStructure\LinkedList\Doubly\DoublyLinkedList` — implements `IDoublyLinkedList`, `IteratorAggregate` (note: **not** `ILinkedList` — it's a separate interface). Same persistent/immutable pattern and near-identical API surface to `SingleLinkedList`, plus backward traversal via `DoublyLinkedListNode::getPrevious()`.
@@ -236,32 +262,52 @@ Errors (`pop()`/`peek()`/`bottom()` on an empty stack) throw `InvalidArgumentExc
 
 ### Queue
 
-`Zack\PhpDsAlgo\DataStructure\Queue\Queue` — implements `IQueue` (`extends Countable`). **Mutable**, like `ArrayStack`. Has **no static factories** — construct it directly with an array, and note the capacity setup requirement below.
+`Zack\PhpDsAlgo\DataStructure\Queue\Queue` — implements `IQueue` (`extends Countable`). **Mutable**, like `ArrayStack`. Has **no static factories** — construct it directly with an array.
 
 ```php
 use Zack\PhpDsAlgo\DataStructure\Queue\Queue;
 
-$queue = new Queue([]);
-$queue->setMaxCapacity(10); // REQUIRED before enqueue()/isFull()/getMaxCapacity() — see note below
+$queue = new Queue(['a', 'b']);      // maxCapacity defaults to PHP_INT_MAX — effectively unbounded
+$queue = new Queue(['a', 'b'], 10);  // or set a real capacity from the start
 
-$queue->enqueue('a')->enqueue('b')->enqueue('c'); // chainable, mutates in place
+$queue->enqueue('c'); // chainable, mutates in place — throws once the queue reaches maxCapacity
 $queue->dequeue();      // removes & returns the front item — throws if empty
 $queue->front();        // peek the front item
 $queue->rear();         // peek the back item
 $queue->isEmpty();      // bool
-$queue->isFull();       // bool, compares count() to maxCapacity
+$queue->isFull();       // bool — count() >= maxCapacity
 $queue->contains('b');  // bool, strict comparison
 $queue->clear();        // empties in place
 $queue->toArray();      // front-to-rear order
 $queue->toIterable();   // generator, front-to-rear
 $queue->getMaxCapacity();
+$queue->setMaxCapacity(20); // throws InvalidArgumentException if smaller than the current size
 ```
 
-> **Required setup — `setMaxCapacity()`:** `maxCapacity` has no default value. Calling `enqueue()`, `isFull()`, or `getMaxCapacity()` before `setMaxCapacity()` throws a PHP `Error` ("must not be accessed before initialization"), **not** an `InvalidArgumentException`. Always call `setMaxCapacity()` right after construction if you'll use any of those three methods.
+> **`maxCapacity` defaults to `PHP_INT_MAX`** (effectively unbounded) — set it via the constructor's second argument or `setMaxCapacity()` any time you want a real cap. The constructor throws `InvalidArgumentException` if `maxCapacity` is smaller than the number of initial items; `setMaxCapacity()` throws the same way if the new capacity is smaller than the queue's current size.
 
 > **`Queue` does not implement `IteratorAggregate`** — you cannot `foreach` a `Queue` directly. Use `toIterable()` or `toArray()` instead.
 
-See [Known Quirks & Gotchas](#known-quirks--gotchas) for two more Queue-specific edge cases (capacity off-by-one, `front()`/`rear()` on an empty queue) worth knowing about before relying on them.
+See [Known Quirks & Gotchas](#known-quirks--gotchas) for a Queue-specific edge case (`front()`/`rear()` on an empty queue) worth knowing about before relying on it.
+
+---
+
+### Deque
+
+`Zack\PhpDsAlgo\DataStructure\Queue\Deque` — implements `IDeque` (`extends IQueue`). Extends `Queue`, adding push/pop at the front so items can be added or removed from either end:
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Queue\Deque;
+
+$deque = new Deque([2, 3]);
+
+$deque->enqueueFront(1);   // [1, 2, 3] — push to the front
+$deque->enqueue(4);        // [1, 2, 3, 4] — inherited from Queue, pushes to the rear
+$deque->dequeue();         // 1 — inherited from Queue, pops the front
+$deque->dequeueTail();     // 4 — pops the rear
+```
+
+Two asymmetries worth knowing: **`enqueueFront()` does not check `isFull()`** against `maxCapacity` the way inherited `enqueue()` does — it can push past the configured capacity. And **`dequeueTail()` does not throw on an empty deque** the way inherited `dequeue()` does — it returns `null` instead (`array_pop()`'s own behavior on an empty array).
 
 ---
 
@@ -828,6 +874,83 @@ Same as `HashTable`/`HashMap`: `insert()` doubles the capacity (via `resize()`) 
 
 ---
 
+### BinaryTree & BinarySearchTree
+
+`Zack\PhpDsAlgo\DataStructure\Tree\BinaryTree` and `...\BinarySearchTree` — implement `IBinaryTree`/`IBinarySearchTree` (both extend the shared `ITree`), over a common `BinaryTreeNode` and a shared base class `AbstractTree`. **Mutable**, like `ArrayStack`/`Queue`/`Graph`/the heaps — not the clone-then-splice persistent pattern the linked lists use; `insert()`/`remove()`/`balance()` change nodes in place and return `$this` for chaining.
+
+Both share, via `AbstractTree`:
+
+```php
+$tree->getRoot();     // ?BinaryTreeNode
+$tree->isEmpty();     // bool
+$tree->clear();       // empties the tree
+$tree->getHeight();   // int — -1 empty, 0 a single node
+$tree->contains(5);   // bool, breadth-first scan
+$tree->levelOrder();  // list<T>, breadth-first — same as toArray()
+$tree->count();       // int, also via Countable
+
+foreach ($tree as $value) { /* in-order: left, node, right */ }
+```
+
+#### `BinaryTree` — plain binary tree, level-order insertion
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Tree\BinaryTree;
+
+$tree = new BinaryTree();
+$tree->insert(1)->insert(2)->insert(3)->insert(4); // fills breadth-first, left to right
+
+$tree->preOrder();    // [1, 2, 4, 3]  — node, left, right
+$tree->inOrder();     // [4, 2, 1, 3]  — left, node, right
+$tree->postOrder();   // [4, 2, 3, 1]  — left, right, node
+
+$tree->search(4);     // ?BinaryTreeNode — breadth-first scan, no ordering to exploit
+$tree->remove(2);     // removes the first match, promoting the deepest/rightmost node's value into its place
+
+$tree->isFull();      // bool — every node has 0 or 2 children (never exactly 1)
+$tree->isComplete();  // bool — every level full except possibly the last, filled left to right
+$tree->isPerfect();   // bool — every internal node has 2 children, every leaf at the same depth
+$tree->isBalanced();  // bool — every node's two subtrees' heights differ by at most 1
+$tree->getDiameter(); // int — edges on the longest path between any two nodes
+```
+
+`BinaryTree` allows duplicate values (there's no ordering property to enforce uniqueness against) — `insert()` never rejects one.
+
+#### `BinarySearchTree` — ordered insertion, `O(log n)` average lookups
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Tree\BinarySearchTree;
+
+$bst = new BinarySearchTree([50, 30, 70, 20, 40, 60, 80]); // constructor accepts an initial array
+$bst = BinarySearchTree::fromArray([50, 30, 70]);           // equivalent static factory
+
+$bst->insert(35);   // maintains BST order; duplicate values are silently ignored
+$bst->search(40);   // ?BinaryTreeNode, O(log n) average via BST-order descent (not breadth-first)
+$bst->remove(30);   // maintains BST order — leaf / one-child / two-children (successor-promotion) cases
+
+$bst->min();               // ?BinaryTreeNode
+$bst->max();               // ?BinaryTreeNode
+$bst->predecessor(40);     // ?BinaryTreeNode — largest value < 40
+$bst->successor(40);       // ?BinaryTreeNode — smallest value > 40
+$bst->floor(45);            // T|null — largest value <= 45 (need not exist in the tree)
+$bst->ceiling(45);           // T|null — smallest value >= 45
+$bst->findClosest(999);       // T — nearest value to the target; ties favor the shallower node
+
+$bst->inOrder();             // list<T>, ascending — BST in-order traversal is sorted by construction
+$bst->rangeSearch(25, 65);    // list<T>, ascending, values in [25, 65]
+$bst->countInRange(25, 65);   // int, same range without collecting values
+$bst->kthSmallest(2);          // T|null — null if $k is out of bounds
+$bst->kthLargest(2);            // T|null
+$bst->lowestCommonAncestor(20, 80); // ?BinaryTreeNode — null if either value is absent
+
+$bst->isValid();   // bool — true iff every node's left/right subtrees satisfy left < node < right
+$bst->balance();   // rebalances in place via the Day-Stout-Warren algorithm, O(n)
+```
+
+`balance()` is a genuine DSW (Day–Stout–Warren) rebalance — not an AVL rotation — and runs in two passes: `createVine()` first rotates the whole tree into a right-only "vine" with no left children at all (without changing the in-order value sequence), then `compressVine()` repeatedly left-rotates that vine into a balanced shape. A tree built by inserting values in strictly increasing order degrades into an `n`-node chain (height `n - 1`); `balance()` brings it down to the height of a complete binary tree with the same node count.
+
+---
+
 ## Algorithms
 
 Algorithm classes live under `src/Algorithmes/` and are static-method utility classes operating on plain PHP arrays — fully decoupled from the data structures above.
@@ -844,11 +967,15 @@ ArraySortAlgorythmes::selectionSort([5, 3, 1, 4, 2]);  // [1, 2, 3, 4, 5]
 ArraySortAlgorythmes::insertionSort([5, 3, 1, 4, 2]);  // [1, 2, 3, 4, 5]
 ArraySortAlgorythmes::MergeSort([5, 3, 1, 4, 2]);      // [1, 2, 3, 4, 5]
 ArraySortAlgorythmes::QuickSOrt([5, 3, 1, 4, 2]);      // [1, 2, 3, 4, 5]
+ArraySortAlgorythmes::heapSort([5, 3, 1, 4, 2]);       // [1, 2, 3, 4, 5]  — backed by MinHeap
+ArraySortAlgorythmes::bucketSort([5, 3, 1, 4, 2]);     // [1, 2, 3, 4, 5]
 ```
 
-All five take an array by value and return a new sorted array — the input is never mutated. This is the canonical sorting implementation; **`src/SortingAlgorithms.php`** (top-level `Zack\PhpDsAlgo` namespace) is a legacy duplicate of `selectionSort()` kept only for backward compatibility — don't build new code against it.
+All seven take an array by value and return a new sorted array — the input is never mutated. This is the canonical sorting implementation (the legacy top-level `Zack\PhpDsAlgo\SortingAlgorithms` duplicate has been removed — nothing to avoid building against anymore).
 
-`MergeSort()` and `QuickSOrt()` keep their PascalCase method names (unlike the lowerCamelCase `bubbleSort`/`selectionSort`/`insertionSort`) — an inconsistency in the existing API, not a typo.
+`MergeSort()` and `QuickSOrt()` keep their PascalCase method names (unlike the lowerCamelCase `bubbleSort`/`selectionSort`/`insertionSort`/`heapSort`/`bucketSort`) — an inconsistency in the existing API, not a typo.
+
+`bucketSort()` validates every element up front — anything that isn't an `int` or `float` (strings, including numeric ones, bools, `null`, arrays, objects) throws `InvalidArgumentException` before any bucketing work runs. Negatives, floats, and duplicates are all fine; `NAN`/`INF`/`-INF` pass the type check (they're still floats) but aren't meaningfully sortable — `NAN` in particular compares `false` against everything, including itself. Buckets are sized via `bucketCount = max(1, floor(sqrt(n)))`, each covering an equal slice of the array's value range; every bucket is sorted independently with `insertionSort()` and concatenated in order, which stays correct even when the input is heavily clustered into one bucket.
 
 ### Searching — `ArraySearchAlogorthme`
 
@@ -894,6 +1021,22 @@ ArraySearchAlogorthme::FibonacciSearchALgorythme([10, 20, 30, 40, 50], 30); // 2
 `TernarySearchAlgorythme()` is a thin wrapper — unlike `jumpSearch()`, it takes just `($data, $target)` and manages the `$low`/`$high` boundaries internally via a private recursive helper.
 
 `FibonacciSearchALgorythme()` takes `($data, $target)` with `$target` typed strictly `int` (not `int|string` like `linearSearch()`/`TernarySearchAlgorythme()`). It relies on the public `getClosestFibonacci(int $n): array` helper (returns `['f1' => ..., 'f2' => ..., 'f3' => ...]`, the smallest Fibonacci number `>= $n` plus its two predecessors) to seed the probe range.
+
+### String Matching — `KMP`
+
+`Zack\PhpDsAlgo\Algorithmes\Strings\KMP` — Knuth-Morris-Pratt substring search.
+
+```php
+use Zack\PhpDsAlgo\Algorithmes\Strings\KMP;
+
+KMP::run('ABABDABACDABABCABAB', 'ABABCABAB'); // [10]
+KMP::run('AABAACAADAABAABA', 'AABA');          // [0, 9, 12] — overlapping occurrences included
+KMP::run('hello', '');                          // [] — an empty pattern (or text) returns no matches
+
+KMP::calculateLspTable(str_split('AABA'));      // [0, 1, 0, 1] — the "longest suffix-prefix" table run() uses internally
+```
+
+`run($text, $pattern)` returns the zero-based starting index of every occurrence of `$pattern` in `$text`, including overlapping ones — KMP's whole point is avoiding re-comparing characters already matched after a mismatch, using the LSP (longest suffix-prefix) table `calculateLspTable()` builds from the pattern up front.
 
 ### Sliding Window — `SlidingWindow`
 
@@ -994,13 +1137,19 @@ AlgorythmesGlobalHelpers::isBetween(5, 1, 10); // true, inclusive on both ends
 $nums = [1, 2, 3];
 AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums is now [3, 2, 1]
 // throws InvalidArgumentException if either index doesn't exist in the array
+```
 
+`getMinAndMax(array $data)` (used internally by `bucketSort()`, see [Sorting](#sorting--arraysortalgorythmes) above) returns `['min' => ..., 'max' => ...]` in one linear pass; passing an empty `$data` triggers a PHP "undefined array key" warning rather than a validated error, so don't call it with an empty array. `isOdd(int $value)`/`isEven(int $value)` round out the set.
+
+---
 
 ## Exceptions & Error Handling
 
 | Exception | Thrown by | Notes |
 |---|---|---|
-| `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
+| `InvalidArgumentException` (SPL) | Most linked-list, stack, and queue error paths | Linked lists — including `CircularLinkedList` — use constants from `Zack\PhpDsAlgo\Constants\ErrorMessages` (`LINKEDLIST_IS_EMPTY`, `INDEX_OUT_OF_BOUND`, `NO_NODE_WITH_THIS_VALUE`); `ArrayStack`/`Queue`/`Graph` mostly use plain inline messages instead |
+| `InvalidArgumentException` (SPL) | `Queue`'s constructor, when `$maxCapacity` is smaller than the number of initial items; `setMaxCapacity()`, when the new capacity is smaller than the queue's current size; `enqueue()`, once the queue is at `maxCapacity` | See [Queue](#queue) above — `Deque::enqueueFront()` is the one exception, it doesn't check capacity |
+| `InvalidArgumentException` (SPL) | `ArraySortAlgorythmes::bucketSort()`, for any element that isn't an `int` or `float` (checked for every element before any bucketing work runs) | See [Sorting](#sorting--arraysortalgorythmes) above |
 | `InvalidArgumentException` (SPL) | `HashTable`'s constructor (`$capacity <= 0`); `insert()`/`hasValue()`/`delete()`/`getValuePosition()`/`update()`/`getValue()` when given an unhashable value (a closure or a resource) | See [What counts as "hashable"](#hashtable) |
 | `InvalidArgumentException` (SPL) | `HashMap`'s constructor (`$capacity <= 0`); `put()`/`hasKey()`/`get()`/`delete()`/`getKeyPosition()`/`update()` when given an unhashable key (a closure or a resource) — values have no such restriction | See [Keys vs. values](#hashmap) |
 | `InvalidArgumentException` (SPL) | `GeneralArrayAlgorithms::contains()` (used internally by `Set::add()`/`contains()`/`remove()` and the set-algebra methods) when given `null` | See [Set](#set) / [General Array Helpers](#general-array-helpers--generalarrayalgorithms) |
@@ -1028,9 +1177,11 @@ try {
 
 A few behaviors worth knowing before you rely on them — none of these are "wrong" enough to change without a deliberate decision, but all of them have surprised someone while building this library:
 
-- **`Queue::enqueue()`'s capacity check is off by one.** It compares with `>` instead of `>=`, so a queue with `setMaxCapacity(2)` actually accepts **3** items before `enqueue()` throws, and `isFull()` briefly reports `false` again once that 3rd item is in.
 - **`Queue::front()`/`Queue::rear()` don't check for an empty queue**, despite `IQueue`'s docblock promising `@throws InvalidArgumentException`. Calling either on an empty queue just triggers a PHP "undefined array key" warning and returns `null`.
 - **`Queue`'s constructor doesn't reindex array keys** (no `array_values()`), unlike `ArrayStack::fromArray()`. Building a `Queue` from a non-sequential array (e.g. `[5 => 'a', 9 => 'b']`) will break `front()`/`rear()`, which assume index `0` and `count - 1`.
+- **`Deque::enqueueFront()` doesn't check `isFull()`, but `dequeueTail()` doesn't throw on empty.** Both break the symmetry with their inherited `Queue` counterparts (`enqueue()` checks capacity; `dequeue()` throws on empty) — see [Deque](#deque) above.
+- **`BinaryTree`/`BinarySearchTree` are mutable, unlike the linked lists above.** `insert()`/`remove()`/`balance()` change nodes in place and return `$this` for chaining — there's no clone-then-splice persistence here, matching `ArrayStack`/`Queue`/`Graph`/the heaps instead. See [BinaryTree & BinarySearchTree](#binarytree--binarysearchtree) above.
+- **`AbstractTree::getIterator()` is in-order (left, node, right); `levelOrder()`/`toArray()` are breadth-first.** `foreach ($tree as $value)` and `$tree->toArray()` visit nodes in a genuinely different order on any tree with more than one level — don't assume they agree.
 - **`GraphEdge::getWeight()` returns `null` for an unweighted edge** — `int|float|null`, not `int|float`. Always null-check (or use `Graph::isWeighted()`) before doing arithmetic on it.
 - **A handful of defensive null/false guards are unreachable in practice.** `Graph::removeNode()`, and `insert()`/`removeAt()`/`get()` on both linked lists, each have a redundant guard clause that's already preceded by an equivalent bounds check earlier in the same method — under the classes' normal invariants they can never actually trigger. Harmless, just dead code.
 - **`ArraySearchAlogorthme::interpolationSearchRecursive()` computes its estimated position with float division** and uses the (possibly fractional) result both as an array index and as a recursive `int` argument — PHP emits an implicit float-to-int-conversion deprecation notice in that case. It still returns the correct result; it's just noisy.
@@ -1060,30 +1211,33 @@ There is no other linter or static analysis tool configured — `php -l path/to/
 ```
 src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
-│   └── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
+│   ├── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
+│   └── Strings/              # KMP — see String Matching section above
 ├── Constants/               # ErrorMessages
-├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet, IHashSet
+├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IDeque, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet, IHashSet
+│   └── Tree/                  # ITree, IBinaryTree, IBinarySearchTree
 ├── DataStructure/
-│   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode
+│   ├── LinkedList/Single/    # SingleLinkedList, SingleLinkedListNode, CircularLinkedList (reuses SingleLinkedListNode)
 │   ├── LinkedList/Doubly/    # DoublyLinkedList, DoublyLinkedListNode
 │   ├── Stack/                 # ArrayStack
-│   ├── Queue/                 # Queue
+│   ├── Queue/                 # Queue, Deque
 │   ├── Graph/                  # Graph, GraphNode, GraphEdge
 │   ├── Heap/                   # AbstractBinaryHeap, MinHeap, MaxHeap, PriorityQueue, PriorityQueueNode
 │   ├── HashTabe/                # HashTable, HashMap, HashMapNode, HashSet (folder name is a typo — see the HashTable section above)
-│   └── Set/                      # Set — array-backed, no hashing, see the Set section above
+│   ├── Set/                      # Set — array-backed, no hashing, see the Set section above
+│   └── Tree/                      # AbstractTree, BinaryTreeNode, BinaryTree, BinarySearchTree — see BinaryTree & BinarySearchTree section above
 ├── enums/                     # PriorityQueueTypeEnum
 ├── Exception/                # NotFoundException, DuplicateNodeException, EdgeNotFoundException
-├── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
-├── SortingAlgorithms.php      # legacy duplicate — not canonical, see Sorting section above
-└── index.php                  # scratch/demo entrypoint
+└── Helpers/Algorythmes/       # AlgorythmesGlobalHelpers
 ```
 
-Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistently across namespaces and folder names — they're not typos to "fix," PSR-4 resolution depends on them matching exactly.
+(`src/index.php` is a scratch/demo entrypoint, not part of the library proper; the legacy top-level `Zack\PhpDsAlgo\SortingAlgorithms` duplicate has been removed entirely.)
+
+Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistently across namespaces and folder names — they're not typos to "fix," PSR-4 resolution depends on them matching exactly. (The plain-tree class files were briefly a genuine, *unintentional* PSR-4 mismatch — `BinarryTree.php`/`IBinarryTree.php` on disk, declaring correctly-spelled `BinaryTree`/`IBinaryTree` inside — which is why case matters: get it wrong by accident and the class is silently unreachable via `use`, not merely inconsistently named.)
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Highlights: further graph algorithms (topological sort, undirected cycle detection, connected components — Dijkstra's shortest path is now done, see [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)), a Binary Search Tree, heap sort (now that `MinHeap`/`MaxHeap`/`PriorityQueue` exist), and further out — deque, AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, a plain unique-value `Set`, and a hashed `HashSet` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), [Set](#set), and [HashSet](#hashset) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog).
+See `TODO.md` and `features.md` for the current backlog. Graph algorithms (topological sort, undirected cycle detection, connected components, Bellman-Ford, Kruskal's/Prim's MST, A*) and dynamic programming beyond edit distance are the main remaining category gaps — tree (`BinaryTree`/`BinarySearchTree`), deque, heap sort, bucket sort, and string matching (KMP) are now done, see [BinaryTree & BinarySearchTree](#binarytree--binarysearchtree), [Deque](#deque), [Sorting](#sorting--arraysortalgorythmes), and [String Matching](#string-matching--kmp) above. Further out: AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, a plain unique-value `Set`, and a hashed `HashSet` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), [Set](#set), and [HashSet](#hashset) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog), skip list, segment/Fenwick trees.
 
 ## License
 
