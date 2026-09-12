@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\DataStructure\Queue;
 
-use Error;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Zack\PhpDsAlgo\DataStructure\Queue\Queue;
@@ -37,12 +36,34 @@ class QueueTest extends TestCase
         $this->assertSame([5 => 'a', 9 => 'b'], $queue->toArray());
     }
 
+    public function testConstructAcceptsMaxCapacityAsSecondArgument(): void
+    {
+        $queue = new Queue([1, 2], 5);
+
+        $this->assertSame(5, $queue->getMaxCapacity());
+    }
+
+    public function testConstructAllowsInitialItemsExactlyAtMaxCapacity(): void
+    {
+        $queue = new Queue([1, 2], 2);
+
+        $this->assertSame(2, $queue->count());
+        $this->assertTrue($queue->isFull());
+    }
+
+    public function testConstructThrowsWhenInitialItemsExceedMaxCapacity(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Maximum capacity cannot be smaller than the number of initial items.');
+
+        new Queue([1, 2, 3], 2);
+    }
+
     // --- enqueue ---
 
     public function testEnqueueAddsItemToRear(): void
     {
         $queue = new Queue([1, 2]);
-        $queue->setMaxCapacity(10);
 
         $result = $queue->enqueue(3);
 
@@ -53,39 +74,38 @@ class QueueTest extends TestCase
     public function testEnqueueReturnsSameInstance(): void
     {
         $queue = new Queue([]);
-        $queue->setMaxCapacity(10);
 
         $result = $queue->enqueue(1);
 
         $this->assertSame($queue, $result);
     }
 
-    public function testEnqueueThrowsErrorWhenMaxCapacityNotSet(): void
+    public function testEnqueueSucceedsWithoutExplicitlySettingMaxCapacity(): void
     {
-        // maxCapacity is a typed property with no default and isn't set by the
-        // constructor, so reading it before setMaxCapacity() is called fails.
+        // maxCapacity now defaults to PHP_INT_MAX, so a plain `new Queue()`
+        // behaves as an effectively unbounded queue out of the box.
         $queue = new Queue([]);
 
-        $this->expectException(Error::class);
-
         $queue->enqueue('a');
+
+        $this->assertSame(['a'], $queue->toArray());
     }
 
-    public function testEnqueueAllowsOneItemBeyondMaxCapacityBeforeThrowing(): void
+    public function testEnqueueThrowsAssoonAsQueueReachesMaxCapacity(): void
     {
-        // enqueue() guards with `count($this->items) > $this->maxCapacity`, so
-        // exactly maxCapacity + 1 items are accepted before the guard trips.
+        // isFull() (and therefore enqueue()) now trips as soon as the queue
+        // reaches capacity, with no more off-by-one overfill allowance.
         $queue = new Queue([]);
         $queue->setMaxCapacity(2);
 
-        $queue->enqueue('a')->enqueue('b')->enqueue('c');
+        $queue->enqueue('a')->enqueue('b');
 
-        $this->assertSame(3, $queue->count());
+        $this->assertSame(2, $queue->count());
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The capacity id full');
+        $this->expectExceptionMessage('The queue is full.');
 
-        $queue->enqueue('d');
+        $queue->enqueue('c');
     }
 
     // --- dequeue ---
@@ -157,13 +177,31 @@ class QueueTest extends TestCase
         $this->assertSame(5, $queue->getMaxCapacity());
     }
 
-    public function testGetMaxCapacityThrowsErrorWhenNotSet(): void
+    public function testGetMaxCapacityDefaultsToPhpIntMax(): void
     {
         $queue = new Queue([]);
 
-        $this->expectException(Error::class);
+        $this->assertSame(PHP_INT_MAX, $queue->getMaxCapacity());
+    }
 
-        $queue->getMaxCapacity();
+    public function testSetMaxCapacityThrowsWhenBelowCurrentQueueSize(): void
+    {
+        $queue = new Queue([1, 2, 3]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Maximum capacity cannot be smaller than the current queue size.');
+
+        $queue->setMaxCapacity(2);
+    }
+
+    public function testSetMaxCapacityAllowsValueExactlyAtCurrentQueueSize(): void
+    {
+        $queue = new Queue([1, 2, 3]);
+
+        $queue->setMaxCapacity(3);
+
+        $this->assertSame(3, $queue->getMaxCapacity());
+        $this->assertTrue($queue->isFull());
     }
 
     // --- isEmpty ---
@@ -246,25 +284,13 @@ class QueueTest extends TestCase
         $this->assertTrue($queue->isFull());
     }
 
-    public function testIsFullReturnsFalseAfterOffByOneOverfill(): void
+    public function testIsFullReturnsFalseByDefaultWithoutSettingMaxCapacity(): void
     {
-        // Ties into testEnqueueAllowsOneItemBeyondMaxCapacityBeforeThrowing():
-        // once the queue overshoots to maxCapacity + 1, count() no longer
-        // equals maxCapacity, so isFull() flips back to false.
-        $queue = new Queue([]);
-        $queue->setMaxCapacity(2);
-        $queue->enqueue('a')->enqueue('b')->enqueue('c');
-
-        $this->assertFalse($queue->isFull());
-    }
-
-    public function testIsFullThrowsErrorWhenMaxCapacityNotSet(): void
-    {
+        // maxCapacity defaults to PHP_INT_MAX, so a plain queue is never
+        // "full" for any reasonable size.
         $queue = new Queue([1, 2]);
 
-        $this->expectException(Error::class);
-
-        $queue->isFull();
+        $this->assertFalse($queue->isFull());
     }
 
     // --- contains ---

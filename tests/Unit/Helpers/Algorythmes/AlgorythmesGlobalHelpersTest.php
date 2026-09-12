@@ -74,4 +74,104 @@ class AlgorythmesGlobalHelpersTest extends TestCase
 
         AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 99);
     }
+
+    // --- isOdd / isEven ---
+
+    public function testIsOddReturnsTrueForOddNumber(): void
+    {
+        $this->assertTrue(AlgorythmesGlobalHelpers::isOdd(3));
+    }
+
+    public function testIsOddReturnsFalseForEvenNumber(): void
+    {
+        $this->assertFalse(AlgorythmesGlobalHelpers::isOdd(4));
+    }
+
+    public function testIsOddReturnsFalseForZero(): void
+    {
+        $this->assertFalse(AlgorythmesGlobalHelpers::isOdd(0));
+    }
+
+    public function testIsOddReturnsTrueForNegativeOddNumber(): void
+    {
+        $this->assertTrue(AlgorythmesGlobalHelpers::isOdd(-3));
+    }
+
+    public function testIsEvenReturnsTrueForEvenNumber(): void
+    {
+        $this->assertTrue(AlgorythmesGlobalHelpers::isEven(4));
+    }
+
+    public function testIsEvenReturnsFalseForOddNumber(): void
+    {
+        $this->assertFalse(AlgorythmesGlobalHelpers::isEven(3));
+    }
+
+    public function testIsEvenReturnsTrueForZero(): void
+    {
+        $this->assertTrue(AlgorythmesGlobalHelpers::isEven(0));
+    }
+
+    public function testIsEvenReturnsTrueForNegativeEvenNumber(): void
+    {
+        $this->assertTrue(AlgorythmesGlobalHelpers::isEven(-4));
+    }
+
+    // --- getMinAndMax ---
+
+    public function testGetMinAndMaxFindsMinAndMaxRegardlessOfOrder(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([3, 1, 4, 1, 5, 9, 2, 6]);
+
+        $this->assertSame(['min' => 1, 'max' => 9], $result);
+    }
+
+    public function testGetMinAndMaxWithSingleElementReturnsItAsBothMinAndMax(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([42]);
+
+        $this->assertSame(['min' => 42, 'max' => 42], $result);
+    }
+
+    public function testGetMinAndMaxWithAllIdenticalValues(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([7, 7, 7]);
+
+        $this->assertSame(['min' => 7, 'max' => 7], $result);
+    }
+
+    public function testGetMinAndMaxWithOnlyNegativeNumbers(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([-5, -1, -10, -3]);
+
+        $this->assertSame(['min' => -10, 'max' => -1], $result);
+    }
+
+    public function testGetMinAndMaxWithMixOfNegativeAndPositiveNumbers(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([-5, 3, -1, 0, 8, -8, 2]);
+
+        $this->assertSame(['min' => -8, 'max' => 8], $result);
+    }
+
+    public function testGetMinAndMaxWithFloats(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([3.3, 1.1, 4.4, 1.1, 5.5]);
+
+        $this->assertSame(['min' => 1.1, 'max' => 5.5], $result);
+    }
+
+    public function testGetMinAndMaxWhenMinIsTheLastElement(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([5, 4, 3, 2, 1]);
+
+        $this->assertSame(['min' => 1, 'max' => 5], $result);
+    }
+
+    public function testGetMinAndMaxWhenMaxIsTheLastElement(): void
+    {
+        $result = AlgorythmesGlobalHelpers::getMinAndMax([1, 2, 3, 4, 5]);
+
+        $this->assertSame(['min' => 1, 'max' => 5], $result);
+    }
 }
