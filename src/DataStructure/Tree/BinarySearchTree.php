@@ -34,7 +34,11 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
 
     /**
      * Returns the node containing the minimum value.
-     * O(log n) average, O(n) worst case.
+     *
+     * O(n): unlike predecessor()/successor()/floor()/ceiling() below, this
+     * scans every node (breadth-first) comparing values, rather than simply
+     * walking left from the root — it doesn't exploit BST order the way a
+     * true O(log n) min() would.
      *
      * @return BinaryTreeNode<T>|null
      */
@@ -69,7 +73,9 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
 
     /**
      * Returns the node containing the maximum value.
-     * O(log n) average, O(n) worst case.
+     *
+     * O(n) — see the note on {@see min()}; this has the same shape (a full
+     * breadth-first scan) rather than walking right from the root.
      *
      * @return BinaryTreeNode<T>|null
      */
@@ -434,7 +440,7 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
      * @param T|null            &$previous The previous value visited (passed by reference)
      * @return bool True if the subtree is a valid BST, false otherwise
      */
-    private function inOrderCheck(BinaryTreeNode $node, mixed &$previous)
+    private function inOrderCheck(?BinaryTreeNode $node, mixed &$previous)
     {
         if ($node === null) {
             return true;
@@ -492,6 +498,15 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         $this->rangeSearchTraversal($this->root, $results, $low, $high);
         return $results;
     }
+    /**
+     * Appends values in [$low, $heigh] to $results in sorted order, pruning
+     * subtrees that the BST ordering guarantees are entirely out of range
+     * instead of visiting every node.
+     *
+     * @param list<T> &$results Appended to in place, in ascending order.
+     * @param T $low
+     * @param T $heigh
+     */
     private function rangeSearchTraversal(?BinaryTreeNode $node, array &$results, mixed $low, mixed $heigh)
     {
         if ($node === null) {
@@ -507,12 +522,21 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
             $this->rangeSearchTraversal($node->getRight(), $results, $low, $heigh);
         }
     }
+    /**
+     * Returns all values via in-order traversal — sorted ascending order,
+     * since that's exactly what BST in-order traversal produces.
+     *
+     * @return list<T>
+     */
     public function inOrder(): array
     {
         $results = [];
         $this->traverseInOrder($this->root, $results);
         return $results;
     }
+    /**
+     * @param list<T> &$results Appended to in place, in ascending order.
+     */
     private function traverseInOrder(?BinaryTreeNode $node, array &$results)
     {
         if (is_null($node)) {
@@ -536,6 +560,13 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         $this->rangeSearchTraversalCount($this->root, $count, $low, $high);
         return $count;
     }
+    /**
+     * Increments $count for every value in [$low, $heigh] — same pruning
+     * strategy as {@see rangeSearchTraversal()}, without collecting values.
+     *
+     * @param T $low
+     * @param T $heigh
+     */
     private function rangeSearchTraversalCount(?BinaryTreeNode $node, int &$count, mixed $low, mixed $heigh)
     {
         if ($node === null) {
@@ -567,6 +598,13 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         $counter = 0;
         return $this->kthSmallestTraversal($this->root, $k, $counter);
     }
+    /**
+     * In-order traversal that returns the value at position $k (1-indexed)
+     * once $counter reaches it, short-circuiting the rest of the walk;
+     * returns `null` if $k is out of bounds. `$counter` is shared across the
+     * whole traversal (passed by reference) so it keeps counting correctly
+     * across the left-subtree / right-subtree recursive calls.
+     */
     private function kthSmallestTraversal(?BinaryTreeNode $node, int $k, int &$counter): mixed
     {
         if (is_null($node)) {
@@ -599,6 +637,10 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         return $this->kthLargestTraversal($this->root, $k, $counter);
     }
 
+    /**
+     * Mirror of {@see kthSmallestTraversal()}: a reverse in-order traversal
+     * (right, node, left) so the $k-th value visited is the $k-th largest.
+     */
     private function kthLargestTraversal(?BinaryTreeNode $node, int $k, int &$counter): mixed
     {
         if (is_null($node)) {
@@ -665,6 +707,18 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         return $this;
     }
 
+    /**
+     * Second half of the DSW algorithm: repeatedly left-rotates the vine
+     * {@see createVine()} produced into a balanced shape.
+     *
+     * `$m` is the largest `2^k - 1` not exceeding the tree's size — the
+     * node count of the largest perfect binary tree that fits. The first
+     * pass ({@see compress()} with `$n - $m` rotations) trims the vine down
+     * to exactly `$m` nodes' worth of "extra" length; each subsequent pass
+     * halves `$m` and compresses again, the same halving-per-pass shape a
+     * perfect tree's levels have, until the vine has fully folded into a
+     * balanced tree.
+     */
     private function compressVine(): void
     {
         $n = $this->size;
@@ -681,6 +735,14 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         $this->root = $dummy->getRight();
     }
 
+    /**
+     * Performs $count left rotations along the right-leaning vine hanging
+     * off $dummy's right child, halving its length each time it's called by
+     * {@see compressVine()}: for each rotation, the node two steps down the
+     * vine (`$current->getRight()->getRight()`) is pulled up to take
+     * `$current`'s former right child's place, and the old right child is
+     * pushed down to become that promoted node's new left child.
+     */
     private function compress(BinaryTreeNode $dummy, int $count): void
     {
         $current = $dummy;
@@ -700,6 +762,13 @@ class BinarySearchTree extends AbstractTree implements IBinarySearchTree
         }
     }
 
+    /**
+     * First half of the DSW algorithm: rotates the whole tree into a
+     * "vine" — a right-only chain with no left children at all — via
+     * repeated right rotations, without changing the in-order value
+     * sequence. {@see compressVine()} then folds this vine into a balanced
+     * shape.
+     */
     private function createVine(): void
     {
         if (is_null($this->root)) {

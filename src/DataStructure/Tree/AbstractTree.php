@@ -79,16 +79,35 @@ abstract class AbstractTree implements ITree
     }
 
 
+    /**
+     * Returns the left-child index for $index in an array-backed complete
+     * binary tree layout (0-based, `2*i + 1`).
+     *
+     * Currently unused: it (and its siblings below, plus {@see buildNodes()}
+     * / {@see connectNodes()}) only ever gets called from the constructor
+     * that builds a tree directly from a flat array of values in complete
+     * binary tree order — but that constructor is commented out above.
+     */
     protected function getLeftChildIndex(int $index): int
     {
         return 2 * $index + 1;
     }
 
+    /**
+     * Returns the right-child index for $index in an array-backed complete
+     * binary tree layout (0-based, `2*i + 2`). See the note on
+     * {@see getLeftChildIndex()}.
+     */
     protected function getRightChildIndex(int $index): int
     {
         return 2 * $index + 2;
     }
 
+    /**
+     * Returns the parent index for $index in an array-backed complete
+     * binary tree layout (0-based, `floor((i-1)/2)`). See the note on
+     * {@see getLeftChildIndex()}.
+     */
     protected function getParentIndex(int $index): int
     {
         return (int) floor(($index - 1) / 2);
@@ -104,9 +123,11 @@ abstract class AbstractTree implements ITree
 
     /**
      * Determines whether the tree is empty.
+     *
+     * Backed by the tracked `$size` counter, not by checking `$root` — every
+     * method that changes `$size` must keep it in sync with the actual node
+     * count for this to stay correct.
      */
-
-
     public function isEmpty(): bool
     {
         return $this->size === 0;
@@ -126,6 +147,11 @@ abstract class AbstractTree implements ITree
     {
         return $this->getNodeHeight($this->root);
     }
+    /**
+     * Returns the height (in edges) of the subtree rooted at $node: `-1` for
+     * an empty subtree, `0` for a leaf, otherwise `1 + max(height(left),
+     * height(right))`.
+     */
     protected function getNodeHeight(?BinaryTreeNode $node)
     {
         if (is_null($node)) {
@@ -210,6 +236,10 @@ abstract class AbstractTree implements ITree
         return $this->generateTraversal($this->root);
     }
 
+    /**
+     * Yields values via in-order traversal (left, node, right) — the
+     * generator backing {@see getIterator()}.
+     */
     private function generateTraversal(?BinaryTreeNode $node): Generator
     {
         if (is_null($node)) {
@@ -227,12 +257,19 @@ abstract class AbstractTree implements ITree
     {
         return $this->size;
     }
+    /**
+     * Determines whether $node exists and has no children.
+     */
     protected function isLeaf(?BinaryTreeNode $node): bool
     {
         return !is_null($node)
             && is_null($node->getLeft())
             && is_null($node->getRight());
     }
+    /**
+     * Determines whether $node exists and has exactly one child (left xor
+     * right).
+     */
     protected function hasOneChild(?BinaryTreeNode $node): bool
     {
         return !is_null($node)
@@ -241,18 +278,27 @@ abstract class AbstractTree implements ITree
                 || (!is_null($node->getLeft()) && is_null($node->getRight()))
             );
     }
+    /**
+     * Determines whether $node exists and has a left child.
+     */
     protected function hasLeftChild(?BinaryTreeNode $node): bool
     {
         return !is_null($node)
             && !is_null($node->getLeft());
     }
 
+    /**
+     * Determines whether $node exists and has a right child.
+     */
     protected function hasRightChild(?BinaryTreeNode $node): bool
     {
         return !is_null($node)
             && !is_null($node->getRight());
     }
 
+    /**
+     * Determines whether $node exists and has both children.
+     */
     protected function hasTwoChildren(?BinaryTreeNode $node): bool
     {
         return !is_null($node)

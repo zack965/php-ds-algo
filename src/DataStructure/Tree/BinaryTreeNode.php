@@ -15,6 +15,7 @@ class BinaryTreeNode
      */
     private mixed $value;
 
+
     /**
      * @var self<T>|null
      */

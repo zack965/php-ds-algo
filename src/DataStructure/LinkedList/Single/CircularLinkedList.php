@@ -10,12 +10,32 @@ use Zack\PhpDsAlgo\Constants\ErrorMessages;
 use Zack\PhpDsAlgo\Contracts\ILinkedList;
 
 
+/**
+ * An immutable, circular singly-linked list: like {@see SingleLinkedList},
+ * but the tail's `next` points back to the head instead of to `null`, so
+ * the chain has no natural end.
+ *
+ * Follows the same persistent-list pattern as `SingleLinkedList` —
+ * `private` constructor reachable only through the static factories below,
+ * and every mutating operation returns a **new** instance via
+ * {@see cloneNodes()} rather than mutating the receiver. The one added
+ * invariant every operation must preserve is circularity: for a non-empty
+ * list, `getTail()->getNext()` must always be `getHead()` again. Because
+ * there's no `null` terminator to stop at, traversals here are always
+ * bounded by the tracked `$length` (see {@see getIterator()}) instead of a
+ * `while ($current !== null)` loop.
+ */
 class CircularLinkedList implements IteratorAggregate, ILinkedList
 {
     private ?SingleLinkedListNode $head = null;
     private ?SingleLinkedListNode $tail = null;
     private int $length = 0;
     // Constructor
+    /**
+     * Only reachable via the static factories ({@see empty()}, {@see of()},
+     * {@see fromNodes()}, {@see fromIterable()}) — never `new self()`
+     * directly from outside the class.
+     */
     private function __construct(
         ?SingleLinkedListNode $head = null,
         ?SingleLinkedListNode $tail = null,
@@ -27,20 +47,38 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
     }
 
     // Getters and Setters
+    /**
+     * Returns the number of nodes in the list.
+     */
     public function getLength(): int
     {
         return $this->length;
     }
 
+    /**
+     * Alias of {@see fromNodes()}.
+     */
     public static function ofObjects(array $nodes): self
     {
         return self::fromNodes($nodes);
     }
 
+    /**
+     * Returns the head node, or `null` if the list is empty.
+     */
     public function getHead(): ?SingleLinkedListNode
     {
         return $this->head;
     }
+    /**
+     * Iterates over the list's nodes, head to tail, in order.
+     *
+     * Bounded by `$length` rather than a `null`-next check — a circular
+     * list's tail never points to `null`, so a naive `while ($current !==
+     * null)` loop here would never terminate.
+     *
+     * @return \Traversable<int, SingleLinkedListNode>
+     */
     public function getIterator(): \Traversable
     {
         $current = $this->head;
@@ -50,12 +88,23 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $current = $current->getNext();
         }
     }
+    /**
+     * Creates an empty list.
+     */
     public static function empty(): self
     {
         return new self();
     }
 
     // methods of creation
+    /**
+     * Builds a new list from an array of {@see SingleLinkedListNode}
+     * instances, deep-copying each node's value and linking the copies into
+     * a circular chain (the tail's `next` is set back to the new head).
+     *
+     * @throws InvalidArgumentException if any element is not a
+     *                                   {@see SingleLinkedListNode}
+     */
     public static function fromNodes(array $nodes): self
     {
         if ($nodes === []) {
@@ -82,6 +131,10 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         $tail->setNext($head);
         return new self($head, $tail, count($clonedNodes));
     }
+    /**
+     * Builds a new list from a plain array of values, linking them into a
+     * circular chain (the tail's `next` is set back to the new head).
+     */
     public static function of(array $values): self
     {
         if (empty($values)) {
@@ -100,6 +153,10 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         $tail->setNext($head);
         return new self($head, $tail, count($values));
     }
+    /**
+     * Builds a new list from any iterable of values (consumed fully,
+     * including generators), linking them into a circular chain.
+     */
     public static function fromIterable(iterable $values): self
     {
         $head = null;
@@ -146,9 +203,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         return $this->insert($value, $index + 1);
     }
     /**
-     * Clone nodes data and return the new head of the new LinkedList
+     * Deep-copies the existing chain (all `$length` nodes) into a new,
+     * still-circular chain and returns its head, so a mutating method can
+     * splice its change into the copy and leave the receiver untouched.
      *
-     * @return SingleLinkedListNode
+     * @return SingleLinkedListNode|null The new head, or `null` if the list is empty.
      */
     private function cloneNodes(): ?SingleLinkedListNode
     {
@@ -174,6 +233,9 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return $newHead;
     }
+    /**
+     * Returns a new list with $value inserted before the current head.
+     */
     public function prepend(mixed $value): self
     {
         $newHead = new SingleLinkedListNode($value);
@@ -201,6 +263,9 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $this->length + 1
         );
     }
+    /**
+     * Returns a new list with $value inserted after the current tail.
+     */
     public function append(mixed $value): self
     {
         $newNode = new SingleLinkedListNode($value);
@@ -228,6 +293,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $this->length + 1
         );
     }
+    /**
+     * Returns a new list with $value inserted at $index (0-based; $index ===
+     * getLength() appends).
+     *
+     * @throws InvalidArgumentException if $index is out of bounds
+     */
     public function insert(mixed $value, int $index): self
     {
         if ($index < 0 || $index > $this->length) {
@@ -251,7 +322,7 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         $newNode->setNext($previousNode->getNext());
         $previousNode->setNext($newNode);
         $newTail = $newHead;
-        for ($i = 1; $i < $this->length; $i++) {
+        for ($i = 1; $i < $this->length + 1; $i++) {
             $newTail = $newTail->getNext();
         }
 
@@ -261,6 +332,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         return new self($newHead, $newTail, $this->length + 1);
     }
     // methods of removal
+    /**
+     * Returns a new list with the first node holding $value removed.
+     *
+     * @throws InvalidArgumentException if the list is empty, or if no node
+     *                                   holds $value
+     */
     public function removeByValue(mixed $value): self
     {
 
@@ -314,6 +391,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         throw new InvalidArgumentException(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
     }
 
+    /**
+     * Walks `$length - 1` steps forward from $head and returns the node
+     * reached — i.e. the last node of a (still-circular) chain of exactly
+     * $length nodes starting at $head.
+     */
     private function findTail(SingleLinkedListNode $head,  int $length): SingleLinkedListNode
     {
         $current = $head;
@@ -325,6 +407,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return $current;
     }
+    /**
+     * Returns a new, empty list.
+     *
+     * @throws InvalidArgumentException if the list is already empty
+     */
     public function clear(): self
     {
         if ($this->head === null) {
@@ -333,6 +420,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return new self();
     }
+    /**
+     * Returns a new single-node list holding just the current head's value
+     * (self-linked, so it stays circular).
+     *
+     * @throws InvalidArgumentException if the list is empty
+     */
     public function clearAndKeepHead(): self
     {
         if ($this->head === null) {
@@ -348,6 +441,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         );
     }
     // index start from 0
+    /**
+     * Returns a new list with the node at $index (0-based) removed.
+     *
+     * @throws InvalidArgumentException if $index is out of bounds, or if
+     *                                   the list is empty
+     */
     public function removeAt(int $index): self
     {
         if ($index < 0 || $index >= $this->length) {
@@ -383,6 +482,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $this->length - 1
         );
     }
+    /**
+     * Returns a new list with the head node removed.
+     *
+     * @throws InvalidArgumentException if the list is empty
+     */
     public function removeHead(): self
     {
 
@@ -409,6 +513,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $this->length - 1
         );
     }
+    /**
+     * Returns a new list with the tail node removed.
+     *
+     * @throws InvalidArgumentException if the list is empty
+     */
     public function removeTail(): self
     {
         if ($this->head === null) {
@@ -461,6 +570,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return $current;
     }
+    /**
+     * Returns the tail node (whose `next` points back to the head).
+     *
+     * @throws InvalidArgumentException if the list is empty
+     */
     public function getTail(): SingleLinkedListNode
     {
         if ($this->tail === null) {
@@ -470,6 +584,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         }
         return $this->tail;
     }
+    /**
+     * Returns the first node holding $value.
+     *
+     * @throws InvalidArgumentException if the list is empty, or if no node
+     *                                   holds $value
+     */
     public function contains(mixed $value): SingleLinkedListNode
     {
         if ($this->head === null) {
@@ -485,6 +605,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         }
         throw new InvalidArgumentException(ErrorMessages::NO_NODE_WITH_THIS_VALUE);
     }
+    /**
+     * Returns the index (0-based) of the first node holding $value.
+     *
+     * @throws InvalidArgumentException if the list is empty, or if no node
+     *                                   holds $value
+     */
     public function indexOf(mixed $value): int
     {
         if ($this->head === null) {
@@ -503,6 +629,12 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
     }
     // Transformations
     // two pointer solution
+    /**
+     * Returns a new list with the node order reversed (the old head becomes
+     * the new tail and vice versa; the list stays circular).
+     *
+     * @throws InvalidArgumentException if the list is empty
+     */
     public function reverse(): self
     {
         if ($this->head === null) {
@@ -536,6 +668,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
             $this->length
         );
     }
+    /**
+     * Returns the list's nodes, head to tail, as a plain array.
+     *
+     * @return list<SingleLinkedListNode>
+     */
     public function toArray(): array
     {
         if (is_null($this->head)) {
@@ -550,6 +687,11 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         }
         return $nodesArray;
     }
+    /**
+     * Returns the list's values, head to tail, as a plain array.
+     *
+     * @return list<mixed>
+     */
     public function toArrayValues(): array
     {
         if (is_null($this->head)) {
@@ -565,6 +707,9 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
         return $nodesArray;
     }
     // Functional methodes
+    /**
+     * Returns a new list with $fn applied to every value, head to tail.
+     */
     public function map(callable $fn): self
     {
         if ($this->head === null) {
@@ -582,6 +727,10 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return self::of($values);
     }
+    /**
+     * Returns a new list containing only the values for which $fn returns
+     * a truthy result.
+     */
     public function filter(callable $fn): self
     {
         if ($this->head === null) {
@@ -604,6 +753,10 @@ class CircularLinkedList implements IteratorAggregate, ILinkedList
 
         return self::of($values);
     }
+    /**
+     * Reduces the list's values, head to tail, to a single value via $fn,
+     * starting from $initial.
+     */
     public function reduce(callable $fn, mixed $initial = null): mixed
     {
         $carry = $initial;

@@ -24,13 +24,9 @@ class BinaryTree extends AbstractTree implements IBinaryTree
 {
     private int $maxDiameter = 0;
 
-
     /**
-     * @param T $value
-     */
-
-
-    /**
+     * Returns the values via pre-order traversal (node, left, right).
+     *
      * @return list<T>
      */
     public function preOrder(): array
@@ -39,6 +35,9 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         $this->traversePreOrder($this->root, $results);
         return $results;
     }
+    /**
+     * @param list<T> &$results Appended to in place, in pre-order.
+     */
     private function traversePreOrder(?BinaryTreeNode $node, array &$results)
     {
         if (is_null($node)) {
@@ -50,6 +49,8 @@ class BinaryTree extends AbstractTree implements IBinaryTree
     }
 
     /**
+     * Returns the values via in-order traversal (left, node, right).
+     *
      * @return list<T>
      */
     public function inOrder(): array
@@ -59,6 +60,9 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return $results;
     }
 
+    /**
+     * @param list<T> &$results Appended to in place, in in-order.
+     */
     private function traverseInOrder(?BinaryTreeNode $node, array &$results)
     {
         if (is_null($node)) {
@@ -69,6 +73,8 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         $this->traverseInOrder($node->getRight(), $results);
     }
     /**
+     * Returns the values via post-order traversal (left, right, node).
+     *
      * @return list<T>
      */
     public function postOrder(): array
@@ -77,6 +83,9 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         $this->traversePostOrder($this->root, $results);
         return $results;
     }
+    /**
+     * @param list<T> &$results Appended to in place, in post-order.
+     */
     private function traversePostOrder(?BinaryTreeNode $node, array &$results)
     {
         if (is_null($node)) {
@@ -88,11 +97,17 @@ class BinaryTree extends AbstractTree implements IBinaryTree
     }
 
 
-
+    /**
+     * Determines whether every node has either 0 or 2 children (never
+     * exactly 1). Vacuously `true` for an empty tree.
+     */
     public function isFull(): bool
     {
         return  $this->traverse($this->root);
     }
+    /**
+     * Recursively checks {@see isNodeFull()} for $node and every descendant.
+     */
     private function traverse(?BinaryTreeNode $node): bool
     {
         if (is_null($node)) {
@@ -106,6 +121,10 @@ class BinaryTree extends AbstractTree implements IBinaryTree
 
         return $leftResult && $rightResult;
     }
+    /**
+     * Determines whether $node itself (not its descendants) has either 0 or
+     * 2 children.
+     */
     private function isNodeFull(?BinaryTreeNode $node): bool
     {
         if (is_null($node)) {
@@ -120,6 +139,12 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return false;
     }
 
+    /**
+     * Determines whether every level is fully filled except possibly the
+     * last, which must be filled left to right with no gaps. Checked via a
+     * breadth-first scan: once a node with a missing child is dequeued, no
+     * node dequeued afterward may have any child at all.
+     */
     public function isComplete(): bool
     {
         $queue = new Queue();
@@ -153,6 +178,11 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return true;
     }
 
+    /**
+     * Determines whether every internal node has exactly 2 children and
+     * every leaf sits at the same depth — equivalent to the tree holding
+     * exactly `2^(height+1) - 1` nodes. Vacuously `true` for an empty tree.
+     */
     public function isPerfect(): bool
     {
         if (is_null($this->root)) {
@@ -164,18 +194,36 @@ class BinaryTree extends AbstractTree implements IBinaryTree
     }
 
 
+    /**
+     * Determines whether, for every node, its two subtrees' heights differ
+     * by at most 1. `true` for an empty tree.
+     */
     public function isBalanced(): bool
     {
+        if (is_null($this->root)) {
+            return true;
+        }
         return $this->checkBalance($this->root) !== -1;
     }
+    /**
+     * Returns the height (in edges) of the subtree rooted at $node — same
+     * convention as {@see AbstractTree::getNodeHeight()}, except an empty
+     * subtree's height is `0` here (not `-1`), which frees `-1` to serve
+     * purely as the "an imbalance was found downstream" signal that
+     * short-circuits every ancestor call straight back up to
+     * {@see isBalanced()} without being confused for a real height.
+     */
     private function checkBalance(?BinaryTreeNode $node): int
     {
         if (is_null($node)) {
-            return -1;
+            return 0;
         }
         $leftHeight = $this->checkBalance($node->getLeft());
+        if ($leftHeight === -1) {
+            return -1;
+        }
         $rightHeight = $this->checkBalance($node->getRight());
-        if ($leftHeight === -1 || $rightHeight === -1) {
+        if ($rightHeight === -1) {
             return -1;
         }
         if (abs($leftHeight - $rightHeight) > 1) {
@@ -185,7 +233,10 @@ class BinaryTree extends AbstractTree implements IBinaryTree
     }
 
 
-
+    /**
+     * Inserts $value at the first free spot in breadth-first (level) order,
+     * so the tree fills left to right, level by level.
+     */
     public function insert(mixed $value): static
     {
         $newNode = new BinaryTreeNode($value);
@@ -295,6 +346,10 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return $this;
     }
 
+    /**
+     * Searches for the first node holding $value via breadth-first scan (no
+     * ordering property to exploit, unlike {@see BinarySearchTree::search()}).
+     */
     public function search(mixed $value): ?BinaryTreeNode
     {
         if (is_null($this->root)) {
@@ -326,6 +381,11 @@ class BinaryTree extends AbstractTree implements IBinaryTree
 
 
 
+    /**
+     * Returns the diameter: the length (in edges) of the longest path
+     * between any two nodes in the tree. `0` for an empty or single-node
+     * tree (no edges exist).
+     */
     public function getDiameter(): int
     {
         $this->maxDiameter = 0;
@@ -333,6 +393,15 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         return $this->maxDiameter;
     }
 
+    /**
+     * Returns the height (in edges) of the subtree rooted at $node — same
+     * convention as {@see AbstractTree::getNodeHeight()} (`-1` empty, `0` a
+     * leaf) — and, as a side effect, updates `$maxDiameter` with the
+     * longest path passing through $node: reaching a leaf on the left costs
+     * `leftHeight + 1` edges from $node, and `rightHeight + 1` on the
+     * right, so the path through $node spans `leftHeight + rightHeight + 2`
+     * edges in total.
+     */
     private function calculateHeight(?BinaryTreeNode $node): int
     {
         if (is_null($node)) {
@@ -342,7 +411,7 @@ class BinaryTree extends AbstractTree implements IBinaryTree
         $leftHeight = $this->calculateHeight($node->getLeft());
         $rightHeight = $this->calculateHeight($node->getRight());
 
-        $currentDiameter = $leftHeight + $rightHeight + 1;
+        $currentDiameter = $leftHeight + $rightHeight + 2;
         $this->maxDiameter = max($this->maxDiameter, $currentDiameter);
 
         return 1 + max($leftHeight, $rightHeight);

@@ -6,11 +6,32 @@ namespace Zack\PhpDsAlgo\DataStructure\Queue;
 use InvalidArgumentException;
 use Zack\PhpDsAlgo\Contracts\IQueue;
 
+/**
+ * A mutable, array-backed FIFO queue with an optional capacity cap.
+ *
+ * `maxCapacity` defaults to `PHP_INT_MAX` (effectively unbounded) unless
+ * given to the constructor or set later via {@see setMaxCapacity()} —
+ * `enqueue()` throws once the queue reaches it.
+ */
 class Queue implements IQueue
 {
-    public function __construct(protected array $items = []) {}
-
-    private int $maxCapacity;
+    /**
+     * @param array<int, mixed> $items Initial items, front to rear.
+     * @param int $maxCapacity Defaults to effectively unbounded.
+     *
+     * @throws InvalidArgumentException if $maxCapacity is smaller than the
+     *                                   number of initial $items.
+     */
+    public function __construct(
+        protected array $items = [],
+        private int $maxCapacity = PHP_INT_MAX,
+    ) {
+        if ($this->maxCapacity < count($this->items)) {
+            throw new InvalidArgumentException(
+                'Maximum capacity cannot be smaller than the number of initial items.'
+            );
+        }
+    }
 
 
     /**
@@ -27,8 +48,8 @@ class Queue implements IQueue
      */
     public function enqueue(mixed $item): static
     {
-        if (count($this->items) > $this->maxCapacity) {
-            throw new InvalidArgumentException("The capacity id full");
+        if ($this->isFull()) {
+            throw new InvalidArgumentException('The queue is full.');
         }
 
         $this->items[] = $item;
@@ -63,20 +84,45 @@ class Queue implements IQueue
      *
      * @param  int $maxCapacity
      * @return self
+     *
+     * @throws InvalidArgumentException if $maxCapacity is smaller than the
+     *                                   queue's current size.
      */
     public function setMaxCapacity(int $maxCapacity): self
     {
+        if ($maxCapacity < $this->count()) {
+            throw new InvalidArgumentException(
+                'Maximum capacity cannot be smaller than the current queue size.'
+            );
+        }
+
         $this->maxCapacity = $maxCapacity;
 
         return $this;
     }
 
 
+    /**
+     * Return the front element without removing it.
+     *
+     * Unlike the `@throws` documented on {@see \Zack\PhpDsAlgo\Contracts\IQueue::front()},
+     * this implementation does not throw on an empty queue — accessing
+     * index `0` of an empty `$items` array emits a PHP warning and
+     * evaluates to `null`.
+     */
     public function front(): mixed
     {
         return $this->items[0];
     }
 
+    /**
+     * Return the last element without removing it.
+     *
+     * Unlike the `@throws` documented on {@see \Zack\PhpDsAlgo\Contracts\IQueue::rear()},
+     * this implementation does not throw on an empty queue — accessing a
+     * negative index (`count($this->items) - 1` is `-1` when empty) emits a
+     * PHP warning and evaluates to `null`.
+     */
     public function rear(): mixed
     {
         return $this->items[count($this->items) - 1];
@@ -126,7 +172,7 @@ class Queue implements IQueue
      */
     public function isFull(): bool
     {
-        return count($this->items) == $this->maxCapacity;
+        return count($this->items) >= $this->maxCapacity;
     }
 
     /**

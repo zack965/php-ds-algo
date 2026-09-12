@@ -1,6 +1,7 @@
 <?php
 
 use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
+use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
 use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
 use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
@@ -18,6 +19,8 @@ require_once "vendor/autoload.php";
 $array_big = [2, 34, 1, 2, 7, 6, 1, 9, 22, 75, 222];
 $array = [7, 23, 134, 451, 892];
 $array_small = [2, 34, 1, 2];
+
+ArraySortAlgorythmes::bucketSort($array);
 
 
 
@@ -64,4 +67,4 @@ $hashTable->insert('apple');
 
 var_dump($hashTable); */
 
-KMP::run("hello", "h");
+//KMP::run("hello", "h");
