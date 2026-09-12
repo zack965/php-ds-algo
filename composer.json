@@ -23,6 +23,7 @@
         "phpstan/phpstan": "^2.2"
     },
      "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "stan": "phpstan analyse --memory-limit=1G"
     }
 }

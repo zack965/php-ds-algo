@@ -1,0 +1,15 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+        - tests
+    excludePaths:
+        # AVLTree is a work-in-progress draft (untracked in tests/README/CHANGELOG) —
+        # excluded rather than baselined since its shape is still actively changing.
+        - src/DataStructure/Tree/AVLTree.php
+        - src/DataStructure/Tree/AvlTreeNode.php
+        - src/Contracts/Tree/IAVLTree.php
+    tmpDir: .phpstan.cache
