@@ -1,120 +1,100 @@
-# Graph traversal: BFS and DFS
+# Graph Traversal: BFS & DFS
 
-Two static, single-method classes in `src/Algorithmes/`, both operating
-against the `IGraph` contract (so they work with any conforming
-implementation, not just the concrete `Graph` class):
-`GraphBreadthFirstTraversal::traverse()` and
-`GraphDepthFirstTraversal::traverse()`. Both take `(IGraph $graph,
-int|string $start)`, throw `NotFoundException::nodeNotFound($start)` if the
-start node doesn't exist, and return a flat array of visited node values in
-traversal order.
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes`
+**Classes:** `GraphBreadthFirstTraversal`, `GraphDepthFirstTraversal`
 
-## BFS: array-as-queue
+## What it is
 
-```php
-public static function traverse(IGraph $graph, int|string $start): array
-{
-    if (!$graph->hasNode($start)) {
-        throw NotFoundException::nodeNotFound($start);
-    }
-    $visited = [$start];
-    $queue = [$start];
-    while (!empty($queue)) {
-        $node = $queue[0];
-        $neighbors = $graph->getNeighbors($node);
-        foreach ($neighbors as $neighbor) {
-            if (!GeneralArrayAlgorithms::contains($visited, $neighbor->getDestinationNode())) {
-                $queue[] = $neighbor->getDestinationNode();
-                $visited[] = $neighbor->getDestinationNode();
-            }
-        }
-        array_shift($queue);
-    }
-    return $visited;
-}
-```
+Graph traversal visits every node you can reach from a starting node. The
+two basic strategies differ in the **order** they visit nodes:
 
-Standard level-by-level BFS: `$start` is marked visited immediately (before
-the loop even begins, avoiding the "is it in the queue but not yet marked"
-edge case), then each iteration reads the front of `$queue` (without
-popping it yet), expands its neighbors, marks+enqueues any that aren't
-already in `$visited`, and only then shifts the front off. Marking a node
-visited *at enqueue time* (not at dequeue time) is what prevents the same
-node from being queued twice via two different parents.
+- **Breadth-First Search (BFS)** goes **level by level**. It visits every
+  neighbor of the start node, then their neighbors, and so on outward.
+- **Depth-First Search (DFS)** goes **as deep as possible** down one path
+  before it backtracks to try another.
 
-## DFS: array-as-stack
+Both classes are static utilities. They accept any `IGraph` implementation
+and return the visited nodes in order.
 
 ```php
-public static function traverse(IGraph $graph, int|string $start): array
-{
-    if (!$graph->hasNode($start)) {
-        throw NotFoundException::nodeNotFound($start);
-    }
-    $visited = [];
-    $stack = [$start];
-    while (!empty($stack)) {
-        $node = array_pop($stack);
-        if (GeneralArrayAlgorithms::contains($visited, $node)) {
-            continue;
-        }
-        $visited[] = $node;
-        $neighbors = $graph->getNeighbors($node);
-        foreach ($neighbors as $neighbor) {
-            if (!GeneralArrayAlgorithms::contains($visited, $neighbor->getDestinationNode())) {
-                $stack[] = $neighbor->getDestinationNode();
-            }
-        }
-        return $visited; // note: see caveat below
-    }
-    return $visited;
+use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
+
+$graph = new Graph();
+foreach (['A', 'B', 'C', 'D', 'E'] as $n) {
+    $graph->addNode($n);
 }
+$graph->addEdge('A', 'B');
+$graph->addEdge('A', 'C');
+$graph->addEdge('B', 'D');
+$graph->addEdge('C', 'E');
+
+GraphBreadthFirstTraversal::traverse($graph, 'A'); // ['A', 'B', 'C', 'D', 'E']
+GraphDepthFirstTraversal::traverse($graph, 'A');   // ['A', 'C', 'E', 'B', 'D']
 ```
 
-*(That inline comment is illustrative — the real code doesn't return
-mid-loop; it just falls through to the loop's next iteration. Shown above
-only to clarify there's no early exit; ignore the "note" line, the actual
-method is exactly as listed in the file.)*
+If the start node is not in the graph, both methods throw
+`NotFoundException`.
 
-DFS here is **iterative**, not the more textbook-familiar recursive version
-— it uses an explicit PHP array as a stack (`array_pop`/`array[] = `) rather
-than call-stack recursion, which avoids any PHP recursion-depth concerns on
-large/deep graphs. Unlike BFS, a node is only marked visited when it's
-**popped**, not when it's pushed — so the same node can be pushed onto the
-stack multiple times (once per incoming edge from an already-queued
-ancestor) before it's finally popped and processed once; the `continue` on
-an already-visited pop is what makes this safe rather than a correctness
-bug, at the cost of the stack sometimes holding duplicate pending entries.
+## How BFS works
 
-Because it explores by popping the *most recently pushed* neighbor first,
-this produces one valid depth-first order, but not necessarily the "first
-neighbor first" order you'd get from recursing straight through
-`getNeighbors()` in listed order — the last neighbor pushed is the first one
-explored next.
+1. Mark the start node visited and put it in a queue.
+2. Take the node at the front of the queue.
+3. Mark each unvisited neighbor visited and add it to the back of the queue.
+4. Repeat until the queue is empty.
 
-## Shared cost: `GeneralArrayAlgorithms::contains()` is a linear scan
+A node is marked visited **when it is enqueued**, so it enters the queue
+only once. BFS reaches nodes in order of distance from the start, counted in
+edges.
 
-Both algorithms use `Zack\PhpDsAlgo\Algorithmes\GeneralArrayAlgorithms::contains()`
-to check "has this node been visited," which is a plain `foreach` doing
-strict (`===`) comparison — O(n) per call. Textbook BFS/DFS use a hash
-set/associative-array membership check (`isset($visited[$node])`) to keep
-the whole traversal at O(V + E). Here, each neighbor-expansion does an O(V)
-scan of the growing `$visited` array, so the practical complexity is closer
-to O(V² + V·E) than O(V+E) — fine for the small/teaching-scale graphs this
-library targets, but worth knowing if you're traversing something large.
-BFS additionally pays O(n) per `array_shift($queue)` (PHP reindexes the
-whole array), compounding the same way `Queue::dequeue()` does — see
-[`04-queue.md`](04-queue.md).
+## How DFS works
 
-## Complexity summary
+1. Push the start node onto a stack.
+2. Pop a node. If it has not been visited yet, mark it visited and push its
+   unvisited neighbors.
+3. Repeat until the stack is empty.
+
+The implementation is **iterative**. It uses an explicit stack rather than
+recursion, so it handles long paths and deep graphs without running into
+PHP's recursion limits.
+
+## Complexity
 
 | | BFS | DFS |
 |---|---|---|
-| Structure used | array as FIFO queue | array as LIFO stack |
-| Visited-marking point | at enqueue | at pop |
-| Nominal complexity | O(V+E) | O(V+E) |
-| Actual complexity here | O(V² + V·E) (linear `contains` + `array_shift`) | O(V² + V·E) (linear `contains`) |
-| Recursion | none (iterative) | none (iterative, explicit stack) |
+| Helper structure | queue (FIFO) | stack (LIFO) |
+| Node marked visited | when enqueued | when popped |
+| Recursion | none | none |
+| Result | nodes in order of distance from the start | nodes in depth-first order |
 
-Both throw `NotFoundException` up front rather than silently returning an
-empty result for an unknown start node — consistent with the rest of the
-library's "throw on invalid input" convention.
+Both run in O(V + E) in the classic formulation, and use O(V) space for the
+visited list and the helper structure.
+
+## When to use BFS
+
+- **Fewest-hops paths** in unweighted graphs: degrees of separation in a
+  social network, the minimum number of moves in a puzzle.
+- **Level-by-level processing:** org charts, "friends of friends",
+  spreading notifications ring by ring.
+- **Nearest match first:** finding the closest node that satisfies a
+  condition.
+- **Web crawling** to a limited depth.
+
+## When to use DFS
+
+- **Reachability:** "can I get from A to B?"
+- **Exploring every path:** maze solving, puzzle search, generating
+  combinations.
+- **Connected components:** grouping nodes that belong together.
+- **The basis for other graph algorithms**, such as cycle detection and
+  topological ordering. See [Directed Cycle Detection](07-graph-cycle-detection.md).
+
+## When to choose something else
+
+- **Shortest path by total weight** (distance, cost, time):
+  [Dijkstra](12-dijkstra.md) accounts for edge weights. BFS counts only
+  edges.
+- **Only checking whether a directed graph has a cycle:**
+  [`GraphDirectedCycleDetector`](07-graph-cycle-detection.md) answers that in
+  one call.

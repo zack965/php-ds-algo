@@ -1,98 +1,79 @@
-# GraphDirectedCycleDetector: DFS + recursion-stack cycle detection
+# Directed Cycle Detection
 
-`Zack\PhpDsAlgo\Algorithmes\GraphDirectedCycleDetector::detect(IGraph
-$graph): bool` answers "does this directed graph contain a cycle?" using the
-classic recursive-DFS-with-a-recursion-stack technique — the standard
-approach for directed-cycle detection (distinct from undirected-cycle
-detection, which this class does **not** claim to handle; see the caveat
-below).
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes`
+**Class:** `GraphDirectedCycleDetector`
 
-## The algorithm
+## What it is
 
-```php
-public static function detect(IGraph $graph): bool
-{
-    $visited = [];
-    $recursionStack = [];
-    $adjency = $graph->getAdjency();
-    foreach ($adjency as $node => $edges) {
-        if (!in_array($node, $visited) && self::traverse($graph, $node, $visited, $recursionStack)) {
-            return true;
-        }
-    }
-    return false;
-}
-```
+A **cycle** in a directed graph is a path that starts and ends at the same
+node by following edge directions: `A → B → C → A`. A directed graph with no
+cycles is a **DAG** (Directed Acyclic Graph).
 
-Because a graph can be disconnected (or have multiple independent
-components/roots), `detect()` doesn't just DFS from one arbitrary start —
-it iterates over **every** node in the adjacency list and kicks off a fresh
-DFS from any node not yet visited by a prior traversal. This is what makes
-it correct on graphs that aren't fully reachable from a single node.
-
-## The recursive traversal — two arrays, two different meanings
+`GraphDirectedCycleDetector::detect()` answers one question: *does this
+directed graph contain a cycle?*
 
 ```php
-private static function traverse(IGraph $graph, int|string $start, array &$visited, array &$recursionStack): bool
-{
-    $visited[] = $start;
-    $recursionStack[] = $start;
-    foreach ($graph->getNeighbors($start) as $neighbor) {
-        $destination = $neighbor->getDestinationNode();
-        if (GeneralArrayAlgorithms::contains($recursionStack, $destination)) {
-            return true; // back edge -> cycle
-        }
-        if (!GeneralArrayAlgorithms::contains($visited, $destination)
-            && self::traverse($graph, $destination, $visited, $recursionStack)) {
-            return true;
-        }
-    }
-    array_pop($recursionStack);
-    return false;
+use Zack\PhpDsAlgo\Algorithmes\GraphDirectedCycleDetector;
+use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
+
+$graph = new Graph(); // directed
+foreach (['A', 'B', 'C'] as $n) {
+    $graph->addNode($n);
 }
+$graph->addEdge('A', 'B');
+$graph->addEdge('B', 'C');
+
+GraphDirectedCycleDetector::detect($graph); // false, a DAG
+
+$graph->addEdge('C', 'A');
+GraphDirectedCycleDetector::detect($graph); // true, A → B → C → A
 ```
 
-The key idea that makes this work for *directed* graphs specifically:
+## How it works
 
-- **`$visited`** — every node ever explored, across the *whole* `detect()`
-  call (never shrinks). Prevents re-exploring a node's whole subtree
-  redundantly on later top-level iterations in `detect()`'s loop.
-- **`$recursionStack`** — only the nodes on the **current DFS path** from
-  the current root down to wherever the recursion currently is. A node is
-  pushed onto it on entry and popped off (`array_pop`) right before
-  `traverse()` returns for that node — i.e. it behaves like an actual call
-  stack, mirrored in an array specifically so it can be searched.
+The detector runs a **depth-first search** and keeps two records:
 
-A cycle exists **iff** a DFS ever reaches a neighbor that's already on the
-*current recursion path* — that's a **back edge**, pointing from a
-descendant back up to one of its own ancestors in the DFS tree. Reaching an
-already-`$visited`-but-not-on-the-current-path node is *not* a cycle — it's
-a **cross edge** (common in DAGs, e.g. a "diamond" shape: `A→B`, `A→C`,
-`B→D`, `C→D` visits `D` twice but has no cycle) — which is exactly why two
-separate arrays are needed instead of one. Using only `$visited` (as a
-naive DFS-reachability check would) gives false positives on any DAG with a
-shared descendant; `$recursionStack` is what disambiguates "this node is an
-ancestor of itself" from "this node was already fully explored elsewhere."
+- **Visited**: every node explored so far. The detector explores each node
+  only once.
+- **Recursion stack**: only the nodes on the **current path** from the DFS
+  root to the node being explored. A node joins this stack when the search
+  enters it and leaves when the search has finished exploring it.
 
-## Why this only works for directed graphs
+A cycle exists exactly when the search reaches a neighbor that is **already
+on the current path**. This is a *back edge*: it points from a node back to
+one of its own ancestors.
 
-On an **undirected** graph, the edge you just came from (`parent → current`)
-is trivially "already on the recursion stack" — walking back along the same
-edge you arrived on would always look like a cycle. Undirected-cycle
-detection needs to track and explicitly skip the immediate parent edge,
-which this implementation doesn't do. The class name (`GraphDirectedCycleDetector`)
-and this project's own roadmap (`PathToOnePointO.md` lists "Undirected-graph
-cycle detection" as explicitly out-of-scope/future work) both confirm this
-is a deliberate, documented scope boundary rather than an oversight — don't
-call `detect()` on an undirected `Graph` expecting a meaningful answer.
+Reaching a node that was visited earlier on a *different* path is not a
+cycle. For example, a "diamond" (`A→B`, `A→C`, `B→D`, `C→D`) reaches `D`
+twice but has no cycle. Keeping a separate recursion stack is what lets the
+detector tell the two situations apart.
+
+`detect()` starts a fresh search from every node not yet visited, so it
+checks every part of the graph, including components that no single start
+node can reach.
 
 ## Complexity
 
-Each node is pushed/popped from `$recursionStack` exactly once per
-top-level DFS root, and each edge is examined once — nominally O(V+E).
-`GeneralArrayAlgorithms::contains()` is a linear scan (same caveat as
-[`06-graph-traversal-bfs-dfs.md`](06-graph-traversal-bfs-dfs.md)), so the
-two `contains()` calls per edge push the practical cost toward O(V·E) on
-graphs where `$visited`/`$recursionStack` grow large — again, fine at the
-scale this library targets, but not the asymptotically optimal
-hash-set-backed version you'd write for a large graph.
+- **Time:** O(V + E) in the classic formulation. Each node is entered once
+  and each edge is examined once.
+- **Space:** O(V) for the visited record and the recursion stack.
+
+## When to use it
+
+- **Dependency validation:** make sure packages, modules or build targets do
+  not depend on each other in a loop.
+- **Task scheduling:** confirm that a set of tasks with "must run before"
+  rules can actually run in some order.
+- **Workflow and state-machine validation:** spot loops in approval chains or
+  pipelines.
+- **Before topological ordering:** a valid order exists only when the graph
+  has no cycles.
+- **Deadlock detection:** find circular waits in resource-allocation graphs.
+
+## When to choose something else
+
+- **Undirected graphs:** this detector is built for directed graphs, where
+  edge direction defines a cycle. Use it on graphs created with the default
+  `new Graph()`.
+- **Listing reachable nodes rather than asking yes/no:** use
+  [BFS or DFS traversal](06-graph-traversal-bfs-dfs.md).

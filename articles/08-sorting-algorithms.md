@@ -1,270 +1,149 @@
-# ArraySortAlgorythmes: seven classic sorts on plain PHP arrays
+# Sorting Algorithms
 
-`Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes` (note the intentional
-misspelling — see `CLAUDE.md`) is a static-method utility class implementing
-bubble, selection, insertion, merge, quick, heap, and bucket sort. All
-operate on plain `array`s and return a new sorted array. All rely on
-`AlgorythmesGlobalHelpers::swapValuesOfArray()` for in-place element swaps
-except merge sort (doesn't need swapping) and bucket sort (delegates to
-insertion sort per bucket instead of swapping directly).
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes`
+**Class:** `ArraySortAlgorythmes`
 
-## The three O(n²) sorts
+## What it is
 
-All three take a snapshot copy of the array (PHP arrays are value types
-passed by value into these methods, so mutating the local `$nums`/`$data`
-parameter never touches the caller's array) and sort it in place before
-returning it.
-
-**Bubble sort** — repeated adjacent-pair comparison passes:
-```php
-for ($i = 1; $i < $length_nums; $i++) {
-    for ($j = 0; $j < $length_nums - 1; $j++) {
-        if ($nums[$j] > $nums[$j + 1]) {
-            AlgorythmesGlobalHelpers::swapValuesOfArray($nums, $j, $j + 1);
-        }
-    }
-}
-```
-No early-exit optimization (no "no swaps this pass, stop early" flag) — it
-always runs the full `n-1` outer passes regardless of whether the array
-became sorted earlier. O(n²) time in every case, including an
-already-sorted input.
-
-**Selection sort** — for each position, find the true minimum of the
-remaining unsorted suffix and swap it into place:
-```php
-for ($i = 0; $i <= $length_nums - 1; $i++) {
-    $minimumIndex = $i;
-    for ($j = $i + 1; $j <= $length_nums - 1; $j++) {
-        if ($nums[$j] < $nums[$minimumIndex]) {
-            $minimumIndex = $j;
-        }
-    }
-    if ($minimumIndex !== $i) {
-        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, $i, $minimumIndex);
-    }
-}
-```
-Always O(n²) comparisons regardless of input order (it has to scan the
-whole remaining suffix every time to find the minimum), but at most `n`
-swaps — the guard `if ($minimumIndex !== $i)` skips the no-op swap when the
-current position is already the minimum.
-
-**Insertion sort** — grows a sorted prefix one element at a time, sliding
-each new element left past anything bigger than it:
-```php
-for ($i = 1; $i <= $length_nums - 1; $i++) {
-    $j = $i;
-    while ($j > 0 && $nums[$j - 1] > $nums[$j]) {
-        AlgorythmesGlobalHelpers::swapValuesOfArray($nums, $j, $j - 1);
-        $j = $j - 1;
-    }
-}
-```
-This implementation does the "slide left" via repeated adjacent swaps
-rather than the more classic "shift right, then single insert" — functionally
-equivalent but does more array writes per shift. Best case is O(n) (already
-sorted — the `while` never enters), worst case O(n²) (reverse sorted).
-
-(A top-level `Zack\PhpDsAlgo\SortingAlgorithms` used to duplicate this
-class's selection sort under a different namespace; it's been deleted —
-`ArraySortAlgorythmes::selectionSort()` is simply the only copy now.)
-
-## Merge sort — top-down recursive, O(n log n) guaranteed
+`ArraySortAlgorythmes` is a static utility class with seven classic sorting
+algorithms. Each one takes a plain PHP array and **returns a new array sorted
+in ascending order**. The array you pass in is left unchanged.
 
 ```php
-public static function MergeSort(array $data): array
-{
-    if (empty($data) || count($data) == 1) return $data;
-    self::processMergeSort($data, 0, count($data) - 1);
-    return $data;
-}
-private static function processMergeSort(array &$data, int $low, int $height)
-{
-    if ($low >= $height) return;
-    $mid = (int) floor(($low + $height) / 2);
-    self::processMergeSort($data, $low, $mid);
-    self::processMergeSort($data, $mid + 1, $height);
-    self::Merge($data, $low, $mid, $height);
-}
+use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
+
+$data = [5, 2, 9, 1, 7];
+
+ArraySortAlgorythmes::bubbleSort($data);    // [1, 2, 5, 7, 9]
+ArraySortAlgorythmes::selectionSort($data);
+ArraySortAlgorythmes::insertionSort($data);
+ArraySortAlgorythmes::MergeSort($data);
+ArraySortAlgorythmes::QuickSOrt($data);
+ArraySortAlgorythmes::heapSort($data);
+ArraySortAlgorythmes::bucketSort($data);
 ```
 
-Standard divide-and-conquer: split at the midpoint, recursively sort each
-half, then merge the two sorted halves back together in linear time. The
-whole `$data` array is passed **by reference** (`array &$data`) through the
-recursive helpers, so the split/merge happens against one shared array
-rather than allocating new sub-arrays at every level — this is what keeps
-the auxiliary space closer to the merge step's own `$temp` buffer rather
-than the classic O(n log n) space you'd get from array-slicing at each
-recursive call. `Merge()` itself is the textbook two-pointer merge: walk
-`$left`/`$right` pointers across the two sorted subranges, always taking
-the smaller front element into `$temp`, then copy over whatever's left of
-either side, then write `$temp` back into `$data[$low..$height]`.
+## Bubble sort
 
-Guaranteed O(n log n) time regardless of input order, O(n) auxiliary space
-for the `$temp` buffer (rebuilt per merge call, not shared across calls),
-and it's **stable** (the `<=` comparison in `Merge()` — `if ($data[$left]
-<= $data[$right])` — takes from the left side on ties, preserving original
-relative order of equal elements).
+Bubble sort repeatedly steps through the array and swaps each pair of
+neighbors that are out of order. After each pass, the largest remaining
+value has "bubbled" to its final position at the end.
 
-## Quick sort — Hoare-style partitioning around a fixed pivot
+- **Use it for:** teaching, very small arrays, and visualizing how sorting
+  works.
+- **Choose something else for:** anything beyond a few dozen elements.
+  Insertion sort and merge sort do less work.
+
+## Selection sort
+
+For each position, selection sort finds the smallest value in the unsorted
+remainder and swaps it into place. It makes **at most n swaps**.
+
+- **Use it for:** small arrays, and situations where **writes are expensive**
+  (for example flash memory), since the swap count is minimal.
+- **Choose something else when:** the input is already partly sorted.
+  Insertion sort takes advantage of that, while selection sort always does
+  the same number of comparisons.
+
+## Insertion sort
+
+Insertion sort grows a sorted prefix one element at a time. It slides each
+new element left until it sits in the right place. On data that is already
+sorted it runs in **linear time**.
+
+- **Use it for:** small arrays, **nearly sorted** data, and data that arrives
+  one item at a time. It is also used inside other sorts: `bucketSort` uses it
+  to sort each bucket.
+- **Choose something else for:** large arrays in random order. Use merge
+  sort, quick sort or heap sort.
+
+## Merge sort
+
+Merge sort is a divide-and-conquer algorithm. It splits the array in half,
+sorts each half recursively, then **merges** the two sorted halves in linear
+time. The split and merge steps work on a single shared array.
+
+It is **stable**: equal elements keep their original relative order.
+
+- **Use it for:** large arrays that need **guaranteed O(n log n)**
+  performance whatever the input order, and any case where **stability**
+  matters, such as sorting records that were already ordered by another
+  field.
+- **Choose something else when:** memory is very tight. Merge sort uses O(n)
+  extra space for its merge buffer.
+
+## Quick sort
+
+Quick sort picks a **pivot** (the first element of each range), then
+partitions the range so smaller values end up on the left and larger values
+on the right, and recurses into each side. The partition scans from both
+ends toward the middle.
+
+- **Use it for:** general-purpose sorting of **randomly ordered** data. It
+  has excellent average performance and low memory overhead.
+- **Choose something else when:** the input is already sorted or reverse
+  sorted. Because the pivot is the first element, those inputs are best
+  handled by merge sort or heap sort.
+
+## Heap sort
+
+Heap sort builds a `MinHeap` from the data in O(n), then **extracts the
+minimum** repeatedly. The values come out in ascending order. See
+[Heap](13-heap.md).
+
+- **Use it for:** **guaranteed O(n log n)** time on any input distribution
+  or order. It is also a clear illustration of how a heap produces sorted
+  output.
+- **Choose something else when:** you need stability. Merge sort is stable
+  and has the same O(n log n) guarantee.
+
+## Bucket sort
+
+Bucket sort splits the value range into **√n equal-width buckets**, puts
+each value into its bucket, sorts each bucket with insertion sort, then
+joins the buckets in order. Every value in bucket *i* is ≤ every value in
+bucket *i + 1*, so the joined result is fully sorted.
+
+It accepts **integers and floats**. Any other type raises
+`InvalidArgumentException` before sorting starts. Arrays where every value
+is the same are handled directly.
 
 ```php
-public static function QuickSOrt(array $data): array
-{
-    if (empty($data) || count($data) == 1) return $data;
-    self::prociessQuickSort($data, 0, count($data) - 1);
-    return $data;
-}
+ArraySortAlgorythmes::bucketSort([0.42, 0.32, 0.23, 0.52, 0.25]);
+// [0.23, 0.25, 0.32, 0.42, 0.52]
 ```
 
-`partition()` always picks `$data[$left]` (the first element of the current
-subrange) as the pivot — not a random or median-of-three pivot — which
-means an already-sorted or reverse-sorted input triggers quicksort's O(n²)
-worst case (every partition splits off just one element). The partition
-scheme itself is a Hoare-style two-pointer sweep from both ends toward the
-middle, swapping out-of-place pairs, finishing by swapping the pivot into
-its final resting position `$rt`:
-
-```php
-private static function partition(array &$data, int $left, int $right): int
-{
-    $pivot = $data[$left];
-    $lt = $left + 1;
-    $rt = $right;
-    while ($lt <= $rt) {
-        while ($lt <= $rt && $data[$lt] <= $pivot) $lt++;
-        while ($rt >= $left && $data[$rt] > $pivot) $rt--;
-        if ($lt < $rt) AlgorythmesGlobalHelpers::swapValuesOfArray($data, $lt, $rt);
-    }
-    AlgorythmesGlobalHelpers::swapValuesOfArray($data, $left, $rt);
-    return $rt;
-}
-```
-
-Recursion is on `[$left, $pivot-1]` and `[$pivot+1, $right]`, same
-by-reference `$data` array as merge sort. Average case O(n log n), worst
-case O(n²) on already-sorted/reverse-sorted/all-equal inputs (a known,
-inherent property of first-element-pivot quicksort, not a bug) — pick merge
-sort instead if input order can't be assumed random.
-
-## Heap sort — extract-min repeatedly, backed by `MinHeap`
-
-```php
-public static function heapSort(array $data): array
-{
-    $sorted = [];
-    $minHeap = new MinHeap($data);
-    $size = $minHeap->size();
-    for ($i = 0; $i < $size; $i++) {
-        $sorted[] = $minHeap->extract();
-    }
-    return $sorted;
-}
-```
-
-The simplest implementation in this class, because it doesn't reimplement
-the heap logic at all — it builds a `MinHeap` (see
-[`13-heap.md`](13-heap.md)) directly from `$data`, then calls `extract()`
-exactly `size()` times. Every `extract()` pops the current minimum and
-re-heapifies, so the sequence of extracted values comes out ascending "for
-free." O(n log n) time in every case (`n` extractions, each O(log n)); O(n)
-space for the heap's own backing array, separate from `$data`, which is
-never mutated. Bubble/selection/insertion sort all avoid allocating a
-second O(n) structure — heap sort trades that extra space for a worst-case
-guarantee those three don't have.
-
-## Bucket sort — partition into equal-width ranges, sort each independently
-
-```php
-public static function bucketSort(array $data): array
-{
-    foreach ($data as $value) {
-        if (!is_int($value) && !is_float($value)) {
-            throw new InvalidArgumentException(/* ... */);
-        }
-    }
-
-    $n = count($data);
-    if ($n < 2) return $data;
-
-    $minMaxData = AlgorythmesGlobalHelpers::getMinAndMax($data);
-    $min = $minMaxData["min"];
-    $max = $minMaxData["max"];
-    $range = $max - $min;
-    $bucketCount = max(1, (int) floor(sqrt($n)));
-    $bucketWidth = ($range == 0) ? 0 : $range / $bucketCount;
-
-    $buckets = array_fill(0, $bucketCount, []);
-    foreach ($data as $value) {
-        if ($range == 0) {
-            $index = 0;
-        } else {
-            $index = (int) floor(($value - $min) / $bucketWidth);
-            if ($index >= $bucketCount) {
-                $index = $bucketCount - 1;
-            }
-        }
-        $buckets[$index][] = $value;
-    }
-
-    $sorted = [];
-    foreach ($buckets as $bucket) {
-        if (empty($bucket)) continue;
-        $sorted[] = count($bucket) === 1 ? [$bucket[0]] : static::insertionSort($bucket);
-    }
-
-    return array_merge(...$sorted);
-}
-```
-
-Every element is validated up front — anything that isn't an `int` or
-`float` (strings, including numeric ones, bools, `null`, arrays, objects)
-throws `InvalidArgumentException` before any bucketing work runs. `NAN`
-and `INF`/`-INF` pass that check (they're still floats) but aren't
-meaningfully sortable in practice — `NAN`'s comparisons are always `false`.
-
-The strategy: find the array's min/max (`AlgorythmesGlobalHelpers::getMinAndMax()`),
-pick `bucketCount = max(1, floor(sqrt(n)))` — the standard choice for
-uniformly distributed input, since it makes both the bucket count and each
-bucket's expected population O(sqrt(n)) — then slice the value range into
-that many equal-width buckets. Every value's bucket index is
-`floor((value - min) / bucketWidth)`; the value equal to `max` would
-compute one index past the last bucket, so it's clamped back into it. When
-every value is identical (`range == 0`), everything routes to bucket 0
-directly instead of dividing by a zero-width bucket — note the `==`
-(loose) comparison here specifically, not `===`: `$range` can come out as
-either an `int` or a `float` `0` depending on whether `$min`/`$max` are
-ints or floats, and only the loose comparison catches both.
-
-Each non-empty bucket is sorted independently with `insertionSort()` (a
-single-element bucket skips the call, trivially already sorted), then all
-buckets are concatenated in ascending index order via `array_merge()` —
-correct because every value in bucket *i* is `<=` every value in bucket
-*i+1* by construction, regardless of how unevenly the input clusters across
-buckets. Average case O(n) for uniformly distributed input (each bucket's
-`insertionSort()` runs on a small, roughly constant-size slice); worst case
-O(n²) if every value lands in one bucket (e.g. many duplicates, or a
-tightly clustered distribution) — bucket sort's whole advantage depends on
-the input actually spreading across buckets.
+- **Use it for:** numeric data **spread evenly across a known range**, such as
+  percentages, normalized scores, sensor readings or prices within a band.
+  On such data it runs in near-linear time.
+- **Choose something else when:** values are clustered tightly together or
+  have many duplicates. Merge sort or heap sort keep O(n log n) on those
+  distributions.
 
 ## Complexity summary
 
-| Algorithm | Best | Average | Worst | Space | Stable? |
+| Algorithm | Best | Average | Worst | Extra space | Stable |
 |---|---|---|---|---|---|
-| Bubble sort | O(n²)* | O(n²) | O(n²) | O(1) | yes |
-| Selection sort | O(n²) | O(n²) | O(n²) | O(1) | no (swap-based) |
+| Bubble sort | O(n²) | O(n²) | O(n²) | O(1) | yes |
+| Selection sort | O(n²) | O(n²) | O(n²) | O(1) | no |
 | Insertion sort | O(n) | O(n²) | O(n²) | O(1) | yes |
 | Merge sort | O(n log n) | O(n log n) | O(n log n) | O(n) | yes |
-| Quick sort | O(n log n) | O(n log n) | O(n²) | O(log n) call stack | no |
-| Heap sort | O(n log n) | O(n log n) | O(n log n) | O(n) heap | no |
-| Bucket sort | O(n) | O(n) | O(n²)** | O(n + bucketCount) | yes (insertion-sort-per-bucket) |
+| Quick sort | O(n log n) | O(n log n) | O(n²) | O(log n) | no |
+| Heap sort | O(n log n) | O(n log n) | O(n log n) | O(n) | no |
+| Bucket sort | O(n) | O(n) | O(n²) | O(n) | yes |
 
-\* This implementation's bubble sort has no early-exit flag, so it's O(n²)
-even on already-sorted input — the one place this codebase's implementation
-is strictly worse than the textbook optimal version of the same algorithm.
+## Picking a sort
 
-\*\* Bucket sort's worst case is entirely distribution-dependent, not
-input-order-dependent like the others in this table — a heavily clustered
-or heavily duplicated input degrades toward one bucket doing all the work,
-regardless of whether that input happens to already be sorted.
+| Situation | Recommended |
+|---|---|
+| Small array (< ~20 items) | Insertion sort |
+| Nearly sorted data | Insertion sort |
+| Large array, stability needed | Merge sort |
+| Large array, random order | Quick sort |
+| Guaranteed O(n log n) on any input | Merge sort or heap sort |
+| Uniformly distributed numbers | Bucket sort |
+| Minimizing writes | Selection sort |
+| Learning or teaching sorting | Bubble sort, then the rest |
+
+Sorted arrays are the starting point for the fast
+[searching algorithms](09-searching-algorithms.md).

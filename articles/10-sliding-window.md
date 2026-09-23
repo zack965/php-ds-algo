@@ -1,31 +1,53 @@
-# SlidingWindow: fixed-size window traversal via callback
+# Sliding Window
 
-`Zack\PhpDsAlgo\Algorithmes\SlidingWindow::processFixedSizeSlidingWindow()`
-is the simplest algorithm in the library, and the only one built around a
-callback rather than returning a computed result directly:
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes`
+**Class:** `SlidingWindow`
+
+## What it is
+
+The **sliding window** technique looks at a fixed-size run of consecutive
+elements, a *window*, then moves that window one position at a time across
+the data. Many "subarray of size k" problems reduce to examining every such
+window.
+
+`SlidingWindow::processFixedSizeSlidingWindow()` walks every window of a
+given size and passes each one to a callback. **You decide** what to compute
+per window: a sum, a maximum, an average, or a pattern check.
 
 ```php
-public static function processFixedSizeSlidingWindow(array $data, int $size, callable $callback)
-{
-    $count = count($data);
-    if ($size <= 0 || $size > $count) {
-        return;
+use Zack\PhpDsAlgo\Algorithmes\SlidingWindow;
+
+SlidingWindow::processFixedSizeSlidingWindow(
+    [1, 3, 2, 6, 4],
+    3,
+    function (array $window, int $start) {
+        echo $start . ': ' . implode(', ', $window) . PHP_EOL;
     }
-    for ($i = 0; $i <= $count - $size; $i++) {
-        $window = array_slice($data, $i, $size);
-        $callback($window, $i);
-    }
-}
+);
+// 0: 1, 3, 2
+// 1: 3, 2, 6
+// 2: 2, 6, 4
 ```
 
-For every valid starting index (`0` through `count($data) - $size`), it
-slices out a `$size`-length window and hands it to `$callback($window,
-$startIndex)`. The caller decides what to *do* with each window — sum it,
-find its max, check a condition — rather than this method computing
-anything itself. That makes it a general-purpose traversal primitive rather
-than a single-purpose algorithm; e.g. "maximum sum subarray of size k" is
-just:
+## Signature
 
+```php
+SlidingWindow::processFixedSizeSlidingWindow(
+    array $data,
+    int $size,
+    callable $callback // function (array $window, int $startIndex)
+);
+```
+
+- For an array of `n` elements, the callback runs **n − size + 1** times.
+- Each call receives the window's **full contents** and its **start index**.
+- If `$size` is `0`, negative, or larger than the array, the method returns
+  without calling the callback. Your code does not need a special case for
+  those inputs.
+
+## Examples
+
+**Maximum sum of k consecutive elements**
 ```php
 $best = PHP_INT_MIN;
 SlidingWindow::processFixedSizeSlidingWindow($data, $k, function (array $window) use (&$best) {
@@ -33,38 +55,47 @@ SlidingWindow::processFixedSizeSlidingWindow($data, $k, function (array $window)
 });
 ```
 
-## Why this isn't O(n) in the way "sliding window" usually implies
+**Moving average (for example a 7-day average)**
+```php
+$averages = [];
+SlidingWindow::processFixedSizeSlidingWindow($dailyValues, 7, function (array $window) use (&$averages) {
+    $averages[] = array_sum($window) / count($window);
+});
+```
 
-The classic sliding-window *technique* gets its efficiency from **not**
-recomputing each window from scratch — you maintain a running sum/count and
-just add the incoming element and subtract the outgoing one as the window
-slides, turning an O(n·k) brute force into O(n). This implementation doesn't
-do that: `array_slice($data, $i, $size)` reconstructs a whole new `$size`-
-element array on every iteration, so the traversal itself is O(n·k), with
-whatever the callback does on top. It's a straightforward, easy-to-read
-window *enumerator* — useful for correctness and for callbacks that
-genuinely need the whole window's contents (not just an aggregate) — but not
-the optimized incremental technique the "sliding window" name usually
-implies. If you need true O(n) behavior for an aggregate like sum/max,
-you'd maintain the running value yourself around this call, or write a
-dedicated incremental version.
-
-## Guard behavior
-
-`$size <= 0` or `$size > count($data)` returns immediately without invoking
-the callback at all (no exception thrown) — silently a no-op rather than an
-error, which is worth knowing if you're expecting a thrown
-`InvalidArgumentException` the way the rest of this library tends to
-respond to invalid input.
-
-## Where this fits in the roadmap
-
-Only the fixed-size variant exists today. The project's own backlog
-(`PathToOnePointO.md`, `TODO.md`) lists dynamic/variable-size sliding window
-and monotonic-deque min/max window as explicitly out-of-scope for the
-current milestone — future additions, not gaps in what's already shipped.
+**Find where a condition first holds**
+```php
+$found = null;
+SlidingWindow::processFixedSizeSlidingWindow($readings, 5, function (array $window, int $i) use (&$found) {
+    if ($found === null && min($window) > 100) {
+        $found = $i; // first 5-reading stretch entirely above 100
+    }
+});
+```
 
 ## Complexity
 
-O((n - k + 1) · k) for the traversal itself (dominated by the repeated
-`array_slice` calls), plus whatever the callback does per window.
+- **Time:** O((n − k + 1) · k) to build the windows, plus the callback's own
+  work.
+- **Space:** O(k) for the current window.
+
+## When to use it
+
+- **Moving averages and rolling statistics** over time series: stock prices,
+  metrics, sensor data.
+- **Fixed-length pattern checks:** "are there 3 failed logins in any 3
+  consecutive events?"
+- **Max or min sum of a subarray of size k.**
+- **Signal smoothing and simple feature extraction.**
+- Any calculation that needs the **whole window's contents**, such as
+  medians, distinct counts or custom rules, rather than a single running
+  number.
+
+## When to choose something else
+
+- **Only a running total over a very large series:** keep a running sum
+  yourself. Add the element that enters the window and subtract the one that
+  leaves.
+- **Windows whose size changes with the data** ("smallest subarray with sum ≥
+  S"): use a two-pointer loop that grows and shrinks the window as it goes.
+- **Searching for a text pattern in a string:** use [KMP](17-kmp.md).

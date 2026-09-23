@@ -1,161 +1,140 @@
-# Queue & Deque: a mutable, array-backed FIFO queue, plus its double-ended sibling
+# Queue & Deque
 
-`Zack\PhpDsAlgo\DataStructure\Queue\Queue` implements `IQueue` the same way
-`ArrayStack` implements `IStack`: a mutable object wrapping a plain PHP
-array, front-to-rear ordering, no persistence. `Deque` extends it, adding
-push/pop at the front too.
+**Namespace:** `Zack\PhpDsAlgo\DataStructure\Queue`
+**Classes:** `Queue`, `Deque`
+**Contracts:** `Zack\PhpDsAlgo\Contracts\IQueue`, `Zack\PhpDsAlgo\Contracts\IDeque`
 
-## Internal representation
+## What it is
 
-```php
-public function __construct(
-    protected array $items = [],
-    private int $maxCapacity = PHP_INT_MAX,
-) {
-    if ($this->maxCapacity < count($this->items)) {
-        throw new InvalidArgumentException(
-            'Maximum capacity cannot be smaller than the number of initial items.'
-        );
-    }
-}
-```
+A **queue** is a First-In, First-Out (FIFO) collection. Items join at the
+**rear** and leave from the **front**, like a line at a ticket counter.
 
-`$items[0]` is the **front** (next to be dequeued); the last element is the
-**rear**. `enqueue()` appends to the end, `dequeue()` removes from the front
-with `array_shift()`.
+A **deque** (double-ended queue) can add and remove items at **both** ends.
+
+Both classes store their items in a PHP array and are **mutable**. `Queue`
+also supports an optional **maximum capacity**, which makes it a bounded
+buffer.
+
+## Queue
 
 ```php
-public function enqueue(mixed $item): static
-{
-    if ($this->isFull()) {
-        throw new InvalidArgumentException('The queue is full.');
-    }
-    $this->items[] = $item;
-    return $this;
-}
+use Zack\PhpDsAlgo\DataStructure\Queue\Queue;
 
-public function dequeue(): mixed
-{
-    if (count($this->items) == 0) {
-        throw new InvalidArgumentException("The Queue is empty");
-    }
-    return array_shift($this->items);
-}
+$queue = new Queue();
+$queue->enqueue('a')->enqueue('b')->enqueue('c');
+
+$queue->front();   // 'a'
+$queue->rear();    // 'c'
+$queue->dequeue(); // 'a'
+$queue->count();   // 2
 ```
 
-`isFull()` compares `count($this->items) >= $this->maxCapacity`, and
-`enqueue()` delegates straight to it — so the queue never actually holds
-more than `maxCapacity` items; `enqueue()` throws exactly once the count
-would reach the cap, with no off-by-one slack either way.
-
-## `maxCapacity` defaults to unbounded — set it explicitly for a real cap
-
-Unlike `ArrayStack`, `Queue` has **no static factory methods** (`empty()`,
-`of()`, etc.) — the only entry point is `new Queue($items, $maxCapacity)`.
-`maxCapacity` defaults to `PHP_INT_MAX`, so a plain `new Queue($items)`
-behaves as an effectively unbounded queue out of the box:
+### Creating a queue
 
 ```php
-$queue = new Queue([]);
-$queue->enqueue('a'); // fine — no capacity set, defaults to PHP_INT_MAX
-
-$queue = new Queue([], 2);          // capacity set from the start
-$queue->setMaxCapacity(10);          // or changed later
+new Queue();                 // empty, unbounded
+new Queue(['a', 'b']);       // with initial items (front first)
+new Queue([], 100);          // with a maximum capacity of 100
 ```
 
-Both the constructor and `setMaxCapacity()` validate against the queue's
-current size: the constructor throws `InvalidArgumentException` if
-`maxCapacity` is smaller than the number of initial `$items`, and
-`setMaxCapacity()` throws the same way if the new capacity is smaller than
-`count()` right now. Either way, the invariant "the queue never holds more
-items than its capacity" can't be violated from outside the class.
+### Bounded queues
 
-This is a change from an earlier version of `Queue`, where `maxCapacity` was
-a typed property with no default at all — reading it (via `enqueue()`,
-`isFull()`, or `getMaxCapacity()`) before an explicit `setMaxCapacity()`
-call threw a PHP `Error` ("must not be accessed before initialization"),
-not a caught `InvalidArgumentException`. That mattered beyond `Queue`
-itself: `AbstractTree`, `BinaryTree`, and `BinarySearchTree` (see
-[`16-binary-search-tree.md`](16-binary-search-tree.md)) all build a bare
-`new Queue()` internally for breadth-first traversals and just call
-`enqueue()` on it without ever setting a capacity — every one of those call
-sites crashed under the old default. Giving `Queue` a real default fixed
-all of them at once, rather than patching each call site individually.
-
-## Everything else
-
-`front()` / `rear()` read `$items[0]` / `$items[count($items) - 1]`
-directly with no empty-check — calling either on an empty queue triggers a
-PHP "undefined array key" warning and returns `null`, rather than throwing
-`InvalidArgumentException` the way `dequeue()`/`ArrayStack::peek()` do. This
-is inconsistent with the rest of the library's "throw on invalid state"
-convention and worth treating as a known gotcha rather than relying on it.
-
-`isEmpty()`, `contains($item)` (strict `in_array`), `clear()`, `toArray()`
-(front-to-rear), `toIterable()` (a generator yielding front-to-rear, useful
-for lazily consuming a large queue without materializing an array), and
-`count()` (via `Countable`, so `count($queue)` works directly) round out the
-surface. Unlike `ArrayStack`, `Queue` does **not** implement
-`IteratorAggregate` — there's no `foreach ($queue as ...)`; use
-`toIterable()` or `toArray()` instead.
-
-## Deque: push/pop at both ends
-
-`Zack\PhpDsAlgo\DataStructure\Queue\Deque` implements `IDeque` (`extends
-IQueue`) and extends `Queue` directly, adding exactly two methods — the
-mirror image of the pair `Queue` already has:
+A capacity limits how many items the queue holds:
 
 ```php
-class Deque extends Queue implements IDeque
-{
-    public function enqueueFront(mixed $item): static
-    {
-        array_unshift($this->items, $item);
-        return $this;
-    }
+$queue = new Queue([], 2);
+$queue->enqueue(1)->enqueue(2);
+$queue->isFull(); // true
 
-    public function dequeueTail(): mixed
-    {
-        return array_pop($this->items);
-    }
-}
+$queue->setMaxCapacity(10); // raise the limit at any time
+$queue->getMaxCapacity();   // 10
 ```
 
-Everything else — `enqueue()`/`dequeue()`, capacity, `front()`/`rear()`,
-`toArray()`, and so on — is inherited unchanged from `Queue`. Two
-asymmetries are worth knowing about the two new methods specifically:
+The capacity always stays at least as large as the number of items already
+in the queue. The constructor and `setMaxCapacity()` both validate this.
 
-- **`enqueueFront()` doesn't check `isFull()`.** Inherited `enqueue()`
-  guards against `maxCapacity`; `enqueueFront()` calls `array_unshift()`
-  directly and can push the deque past its configured capacity.
-- **`dequeueTail()` doesn't throw on an empty deque.** Inherited
-  `dequeue()` throws `InvalidArgumentException` on empty; `dequeueTail()`
-  just returns whatever `array_pop()` returns on an empty array — `null`.
+### API
 
-Both are a direct consequence of `enqueueFront()`/`dequeueTail()` calling
-the underlying PHP array functions directly rather than routing through
-`Queue`'s own `enqueue()`/`dequeue()` (which is where those checks live) —
-not a deliberately different contract for the front/rear-adjacent
-operations, just something to know before relying on the symmetry.
+```php
+$queue->enqueue($item);  // add at the rear, returns $this
+$queue->dequeue();       // remove and return the front
+$queue->front();         // read the front
+$queue->rear();          // read the rear
+$queue->isEmpty();
+$queue->isFull();
+$queue->count();         // also count($queue)
+$queue->contains($item); // strict (===) comparison
+$queue->clear();         // returns $this
+$queue->toArray();       // front → rear
+$queue->toIterable();    // generator, front → rear
+```
 
-## Complexity summary
+- `dequeue()` throws `InvalidArgumentException` when the queue is empty.
+- `enqueue()` throws `InvalidArgumentException` when the queue is full.
+- Call `isEmpty()` before `front()` and `rear()`.
+- `toIterable()` returns a generator, so you can read a large queue lazily
+  without building an array.
 
-| Operation | Time | Notes |
-|---|---|---|
-| `enqueue` | O(1) amortized | throws once `isFull()` |
-| `dequeue` | O(n) | `array_shift()` re-indexes the whole array |
-| `enqueueFront` (`Deque`) | O(n) | `array_unshift()` re-indexes the whole array; no capacity check |
-| `dequeueTail` (`Deque`) | O(1) | `array_pop()`; returns `null` instead of throwing on empty |
-| `front` / `rear` | O(1) | no empty-state guard (see above) |
-| `isEmpty` / `count` / `isFull` | O(1) | |
-| `contains` | O(n) | |
-| `clear` | O(1) | |
-| `toArray` | O(1) | returns internal array directly |
-| `toIterable` | O(1) to start, O(n) to exhaust | generator |
+## Deque
 
-`dequeue()`'s O(n) cost (from `array_shift()` reindexing every remaining
-element) — and `enqueueFront()`'s equivalent cost from `array_unshift()` —
-is the one real performance caveat here — a circular-buffer or
-linked-list-backed queue would make both ends O(1), and is exactly the
-kind of alternative implementation flagged as a possible future addition in
-this project's backlog docs (`TODO.md`), not something currently in `src/`.
+`Deque` extends `Queue`, so it inherits the whole API above and adds two
+operations for the opposite ends:
+
+```php
+use Zack\PhpDsAlgo\DataStructure\Queue\Deque;
+
+$deque = new Deque([2, 3]);
+$deque->enqueueFront(1);   // [1, 2, 3]
+$deque->enqueue(4);        // [1, 2, 3, 4]
+
+$deque->dequeue();         // 1 (from the front)
+$deque->dequeueTail();     // 4 (from the rear)
+```
+
+| Operation | End |
+|---|---|
+| `enqueue` | rear |
+| `enqueueFront` | front |
+| `dequeue` | front |
+| `dequeueTail` | rear |
+
+## Complexity
+
+| Operation | Time |
+|---|---|
+| `enqueue` | O(1) amortized |
+| `dequeue` | O(n) |
+| `enqueueFront` (`Deque`) | O(n) |
+| `dequeueTail` (`Deque`) | O(1) |
+| `front` / `rear` | O(1) |
+| `isEmpty` / `isFull` / `count` | O(1) |
+| `clear` / `toArray` | O(1) |
+| `contains` | O(n) |
+| `toIterable` | O(1) to start, O(n) to consume |
+
+Space: O(n).
+
+## When to use it
+
+**Queue**
+- **Task and job processing** in arrival order.
+- **Breadth-first search** and level-order traversal of trees and graphs.
+  `BinaryTree` uses `Queue` internally for exactly this.
+- **Buffers** between a producer and a consumer. Use a capacity to put
+  backpressure on the producer.
+- **Rate-limited or bounded work lists.**
+
+**Deque**
+- **Sliding-window** problems where items enter at one end and leave at the
+  other.
+- **Work-stealing** schedulers: take from your own end and steal from the
+  opposite end.
+- **Palindrome checks** and other algorithms that compare both ends.
+- **Undo history with a size limit:** push new actions at one end and drop
+  the oldest from the other.
+
+## When to choose something else
+
+- **Last-in, first-out:** `ArrayStack`.
+- **Processing by priority instead of arrival order:** `PriorityQueue`.
+- **Fast membership checks on a large collection:** `HashTable` or `Set`.

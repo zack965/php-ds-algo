@@ -1,148 +1,107 @@
-# KMP: substring search without re-comparing characters you've already matched
+# KMP Substring Search
 
-`Zack\PhpDsAlgo\Algorithmes\Strings\KMP` implements Knuth-Morris-Pratt
-substring search — the library's first (and so far only) string-matching
-algorithm, distinct from the array-element searches in `ArraySearchAlogorthme`
-(see `articles/09-searching-algorithms.md`). Two static methods:
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes\Strings`
+**Class:** `KMP`
 
-```php
-KMP::calculateLspTable(array $data): array   // $data: pattern, one character per element
-KMP::run(string $text, string $pattern): array // zero-based starting indexes of every match
-```
+## What it is
 
-## The problem naive substring search has
+**Knuth-Morris-Pratt (KMP)** finds every occurrence of a **pattern** inside
+a **text** in **linear time**.
 
-A naive search, on a mismatch partway through comparing the pattern against
-some position in the text, just slides the pattern one position to the
-right and starts re-comparing from the pattern's first character again —
-throwing away everything it already learned about the partial match. KMP's
-whole idea is to avoid that: precompute, for every position in the
-*pattern itself*, how far it could safely fall back to without ever having
-to re-check characters that are guaranteed to still match, based purely on
-the pattern's own internal structure (independent of whatever text it'll
-eventually be run against).
-
-## `calculateLspTable()` — the "longest suffix-prefix" table
+A simple substring search restarts the pattern from scratch after each
+mismatch. KMP instead uses what it has already matched: it precomputes a
+table from the pattern, and on a mismatch it jumps straight to the longest
+partial match it can reuse. The pointer into the text **never moves
+backward**.
 
 ```php
-public static function calculateLspTable(array $data): array
-{
-    $lspTable = array_fill(0, count($data), 0);
-    $prefixLength = 0;
-    $i = 1;
-    while ($i < count($data)) {
-        $element = $data[$i];
-        $prefixElement = $data[$prefixLength];
-        if ($element == $prefixElement) {
-            $prefixLength++;
-            $lspTable[$i] = $prefixLength;
-        } else {
-            if ($prefixLength != 0) {
-                $prefixLength = $lspTable[$prefixLength - 1];
-                continue;
-            } else {
-                $lspTable[$i] = 0;
-            }
-        }
-        $i++;
-    }
-    return $lspTable;
-}
+use Zack\PhpDsAlgo\Algorithmes\Strings\KMP;
+
+KMP::run('ABABDABACDABABCABAB', 'ABABCABAB'); // [10]
+KMP::run('AABAACAADAABAABA', 'AABA');          // [0, 9, 12]
+KMP::run('AAAAA', 'AA');                       // [0, 1, 2, 3], overlapping matches included
 ```
 
-For each position `$i` in the pattern, `$lspTable[$i]` is the length of the
-longest proper prefix of the pattern that's *also* a suffix of the
-substring ending at `$i`. Concretely, for the pattern `AABA`:
+## API
+
+```php
+KMP::run(string $text, string $pattern): array;   // zero-based start index of every match
+KMP::calculateLspTable(array $pattern): array;     // pattern as an array of characters
+```
+
+- `run()` returns **every** match, **including overlapping** ones, in order.
+- An empty pattern or an empty text returns `[]`.
+- `calculateLspTable()` is public, so you can inspect or reuse the
+  precomputed table on its own.
+
+## How it works
+
+### Step 1: the LSP table
+
+For each position `i` in the pattern, the **LSP** (Longest proper prefix
+that is also a Suffix) table stores the length of the longest prefix of the
+pattern that also ends at position `i`.
+
+For the pattern `AABA`:
 
 | index | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
 | character | A | A | B | A |
-| LSP value | 0 | 1 | 0 | 1 |
-
-Index 1 (`AA`) has LSP `1` because the single-character prefix `A` is also
-its suffix. Index 3 (`AABA`) has LSP `1` for the same reason (`A` prefix,
-`A` suffix) — the middle `AB` breaks a longer match. This table is exactly
-what lets `run()` skip ahead intelligently on a mismatch: it's the answer
-to "if I've matched this many pattern characters and the next one fails,
-how much of that match can I keep without re-checking anything?"
-
-The two-pointer walk (`$i` scanning the pattern, `$prefixLength` tracking
-the current candidate prefix length) is the same core loop `run()` reuses
-against the text — building the LSP table is really "running KMP with the
-pattern searching against itself."
-
-## `run()` — the actual search
+| LSP | 0 | 1 | 0 | 1 |
 
 ```php
-public static function run(string $text, string $pattern): array
-{
-    if ($pattern === '') {
-        return [];
-    }
-    $str_array = str_split($text);
-    $pattenr_array = str_split($pattern);
-    $pattenr_array_count = count($pattenr_array);
-    if (empty($str_array)) {
-        return [];
-    }
-    $indexes = [];
-    $lspTable = self::calculateLspTable($pattenr_array);
-    $i = 0; // loop over the string
-    $j = 0; // loop over LPS table
-    while ($i < count($str_array)) {
-        if ($str_array[$i] == $pattenr_array[$j]) {
-            $j++;
-            $i++;
-            if ($j == $pattenr_array_count) {
-                $indexes[] = $i - $j;
-                $j = $lspTable[$j - 1];
-            }
-        } else {
-            if ($j != 0) {
-                $j = $lspTable[$j - 1];
-            } else {
-                $i++;
-            }
-        }
-    }
-    return $indexes;
-}
+KMP::calculateLspTable(str_split('AABA')); // [0, 1, 0, 1]
 ```
 
-Two pointers: `$i` walks the text, `$j` walks the pattern (and doubles as
-"how many pattern characters are currently matched"). On a match, both
-advance; if `$j` reaches the full pattern length, a match starting at `$i -
-$j` is recorded, and `$j` falls back to `$lspTable[$j - 1]` — *not* to `0`
-— so overlapping occurrences (see `AABA` in `AABAABA` below) are still
-found rather than skipped. On a mismatch, `$j` falls back via the LSP
-table (reusing however much of the already-matched prefix is still valid)
-without ever moving `$i` backward — the text pointer only ever advances,
-which is the source of KMP's linear-time guarantee. If `$j` is already `0`
-(no partial match to fall back from), `$i` just advances by one, same as
-the naive approach would in that specific case.
+The table answers one question: *"I have matched this much of the pattern
+and the next character failed. How much of the match can I keep?"*
 
-```php
-KMP::run('ABABDABACDABABCABAB', 'ABABCABAB'); // [10]
-KMP::run('AABAACAADAABAABA', 'AABA');          // [0, 9, 12] — overlapping matches included
-KMP::run('hello', '');                          // [] — empty pattern short-circuits immediately
-KMP::run('', 'hello');                          // [] — empty text short-circuits too
-```
+### Step 2: the search
 
-An empty `$pattern` returns `[]` immediately (there's no meaningful
-"empty pattern matches everywhere" behavior implemented); an empty `$text`
-falls through to the `empty($str_array)` check and also returns `[]`.
-Overlapping matches are always included — `run('AAAAA', 'AA')` returns
-`[0, 1, 2, 3]`, one for every valid starting position, not just
-non-overlapping ones.
+Two pointers move forward:
 
-## Complexity summary
+- `i` walks the **text**.
+- `j` counts how many pattern characters are currently matched.
 
-| Operation | Time | Space | Notes |
-|---|---|---|---|
-| `calculateLspTable` | O(m) | O(m) | m = pattern length; run once per `run()` call |
-| `run` | O(n + m) | O(n + m) | n = text length; `str_split()` on both plus the LSP table account for the space |
+1. **Characters match:** advance both. If `j` reaches the pattern length,
+   record a match at `i − j`, then set `j = LSP[j − 1]` so overlapping matches
+   are still found.
+2. **Mismatch with `j > 0`:** set `j = LSP[j − 1]`, which reuses the longest
+   valid partial match. `i` stays where it is.
+3. **Mismatch with `j = 0`:** advance `i`.
 
-The whole point relative to a naive O(n·m) search: the text pointer `$i`
-never moves backward, and every fallback on a mismatch is an O(1) table
-lookup rather than a re-scan — so the total work across the whole search
-is bounded by `n + m`, not `n * m`.
+Because `i` only moves forward and each fallback is a single table lookup,
+the total work is proportional to the length of the text plus the length of
+the pattern.
+
+## Complexity
+
+n = text length, m = pattern length.
+
+| Operation | Time | Space |
+|---|---|---|
+| `calculateLspTable` | O(m) | O(m) |
+| `run` | O(n + m) | O(n + m) |
+
+## When to use it
+
+- **Finding every occurrence** of a word or phrase in a document,
+  including overlapping ones.
+- **Log and stream scanning:** look for signatures or markers in large
+  inputs with predictable, linear performance.
+- **Patterns with repeated structure** such as `AAAB`, `ABABAB` or DNA
+  motifs, where simple search would re-compare the same characters many
+  times.
+- **Bioinformatics:** locating short motifs in long genetic sequences.
+- **Plagiarism and duplicate detection** building blocks.
+- **Learning string algorithms:** the LSP table is a classic idea in
+  preprocessing.
+
+## When to choose something else
+
+- **Only checking whether a substring appears once:** PHP's built-in
+  `str_contains()` or `strpos()` answer that directly.
+- **Approximate matches that tolerate typos:** use
+  [Levenshtein Distance](11-levenshtein-distance.md).
+- **Complex patterns** (wildcards, alternatives, character classes): use
+  regular expressions (`preg_match_all`).

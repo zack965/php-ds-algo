@@ -1,87 +1,70 @@
-# php-ds-algo: what's in here and how it's built
+# php-ds-algo documentation
 
-`zack965/php-ds-algo` is a from-scratch PHP library of classic data structures
-and algorithms, namespaced under `Zack\PhpDsAlgo\` and autoloaded via PSR-4
-from `src/`. No framework, no HTTP layer — just data structures, algorithms,
-and a PHPUnit test suite. This folder is a set of articles that walk through
-*how* each piece actually works internally, not just how to call it (the
-README already covers the call-it side).
+`zack965/php-ds-algo` is a pure-PHP library of classic data structures and
+algorithms, namespaced under `Zack\PhpDsAlgo\` and autoloaded via PSR-4 from
+`src/`. It has no framework dependency, so you can drop it into any PHP
+project.
 
-## The two halves of the codebase
+Each article in this folder documents one data structure or algorithm family
+and covers:
 
-The code splits cleanly into two families that don't depend on each other:
+- **What it is**: the concept and how this library implements it
+- **API**: the main methods, with examples
+- **Complexity**: time and space costs of each operation
+- **When to use it**: the problems it solves well
+- **When to choose something else**: the cases where another structure in
+  this library is the better fit
 
-- **`src/DataStructure/`** — containers: `SingleLinkedList`, `CircularLinkedList`,
-  `DoublyLinkedList`, `ArrayStack`, `Queue`/`Deque`, `Graph`, `MinHeap`/`MaxHeap`,
-  `HashTable`/`HashMap`, `Set`, `BinaryTree`/`BinarySearchTree`. Each lives in
-  its own subfolder alongside a node class where relevant.
-- **`src/Algorithmes/`** — static utility classes that operate on plain PHP
-  arrays or on an `IGraph`: sorting, searching, string matching, sliding
-  window, graph traversal/cycle-detection, edit distance. (Yes, `Algorithmes`
-  and `Alogorthme` are intentional misspellings, kept consistent everywhere
-  for PSR-4 resolution — see `CLAUDE.md`.)
+## Library layout
 
-Two architectural decisions show up repeatedly and are worth understanding
-before reading the individual articles:
+| Area | Namespace | Contents |
+|---|---|---|
+| Data structures | `Zack\PhpDsAlgo\DataStructure\*` | Linked lists, stack, queue/deque, graph, heaps & priority queue, hash table/map, set, binary trees |
+| Algorithms | `Zack\PhpDsAlgo\Algorithmes\*` | Sorting, searching, sliding window, graph traversal, cycle detection, Dijkstra, Levenshtein distance, KMP |
+| Contracts | `Zack\PhpDsAlgo\Contracts\*` | Interfaces (`ILinkedList`, `IStack`, `IQueue`, `IGraph`, `IHeap`, `IHashMap`, `ISet`, …) |
+| Errors | `Zack\PhpDsAlgo\Constants\ErrorMessages`, `Zack\PhpDsAlgo\Exception\*` | Shared error messages and dedicated exception classes |
 
-## 1. Linked lists and the graph are *persistent* (immutable) data structures
+The `Algorithmes` / `Alogorthme` / `Algorythmes` spellings are part of the
+namespace names. Use them exactly as written when you import classes.
 
-`SingleLinkedList` and `DoublyLinkedList` never mutate the receiver. Every
-operation that "changes" the list — `append`, `insert`, `removeAt`,
-`reverse`, `map`, `filter` — returns a **new** list instance and leaves the
-original untouched:
+## Two programming styles
+
+The library supports two styles, and each structure uses the one that suits
+it best.
+
+### Persistent (immutable) structures
+
+`SingleLinkedList`, `CircularLinkedList` and `DoublyLinkedList` are
+**persistent**. Operations such as `append`, `insert`, `removeAt`, `map` and
+`filter` return a **new** list and leave the original as it was:
 
 ```php
 $a = SingleLinkedList::of([1, 2, 3]);
 $b = $a->append(4);
 
-$a->toArrayValues(); // [1, 2, 3]  — unchanged
+$a->toArrayValues(); // [1, 2, 3]
 $b->toArrayValues(); // [1, 2, 3, 4]
 ```
 
-Internally this is done with a `cloneNodes()` helper that deep-copies the
-existing node chain, splices the requested change into the *clone*, and
-wraps the clone's new head in a new list object via the private constructor
-(lists can only be built through static factories — `of()`, `fromNodes()`,
-`fromIterable()`, `empty()` — never `new SingleLinkedList()` directly). See
-[`01-single-linked-list.md`](01-single-linked-list.md) (which also covers
-`CircularLinkedList` — same pattern, the tail's `next` just wraps back to
-the head instead of `null`) and
-[`02-doubly-linked-list.md`](02-doubly-linked-list.md) for the mechanics.
+This makes the lists safe to share between parts of an application, keep as
+snapshots (for example for undo history), and reason about in functional-style
+code.
 
-`ArrayStack` and `Queue`, by contrast, are ordinary mutable structures —
-`push()`/`pop()`/`enqueue()`/`dequeue()` change the object in place. That
-split is deliberate, not an oversight: linked lists model the "structural
-sharing" persistent-data-structure pattern; stack/queue model the
-conventional mutable-container pattern most PHP code expects. `Deque`
-extends `Queue` and inherits its mutability directly (see
-[`04-queue.md`](04-queue.md)). `Graph` is mutable too — nodes and edges are
-added/removed on the same instance. So are `MinHeap`/`MaxHeap` —
-`insert()`/`extract()`/`clear()` mutate the heap's backing array directly,
-though unlike `ArrayStack`/`Queue` they don't return `$this` for chaining
-(see [`13-heap.md`](13-heap.md)) — and so are `HashTable`/`HashMap`, same
-shape as the heaps (see [`14-hashtable-hashmap.md`](14-hashtable-hashmap.md)).
-`Set` is mutable the same way for `add()`/`remove()`/`clear()`, but its
-`union()`/`intersection()`/`difference()` are pure and always return a
-**new** `Set` (see [`15-set.md`](15-set.md)) — the one data structure in
-this library mixing both styles on the same class. `BinaryTree` and
-`BinarySearchTree` are mutable too, the same way as the rest of this
-paragraph — `insert()`/`remove()`/`balance()` change nodes in place — not
-the clone-then-splice pattern the linked lists use, despite both being
-tree-shaped rather than linear (see
-[`16-binary-search-tree.md`](16-binary-search-tree.md)).
+### Mutable containers
 
-## 2. Contracts (`Zack\PhpDsAlgo\Contracts\*`) pin down parity
+`ArrayStack`, `Queue`, `Deque`, `Graph`, `MinHeap`, `MaxHeap`,
+`PriorityQueue`, `HashTable`, `HashMap`, `Set`, `BinaryTree` and
+`BinarySearchTree` are **mutable**. Their operations update the object in
+place, which is the familiar model for most PHP code. `Set` also has pure
+set-algebra methods (`union`, `intersection`, `difference`) that return a new
+`Set`.
 
-`ILinkedList`, `IDoublyLinkedList`, `IStack`, `IQueue`, `IGraph`, `IHeap`,
-`IHashTable`, `IHashMap`, and `ISet` exist so
-that, for example, `SingleLinkedList` and `DoublyLinkedList` can't drift apart
-in method surface — every insertion/removal/access/transformation/functional
-method on one exists on the other, even though PHP interfaces can't enforce
-static factory methods (`of()`, `empty()`, etc. are documented by convention
-instead). Centralized `ErrorMessages` constants (`src/Constants/ErrorMessages.php`)
-and dedicated exception classes (`src/Exception/`) keep error handling
-consistent across implementations instead of inlining ad-hoc message strings.
+## Contracts
+
+Each structure implements an interface from `Zack\PhpDsAlgo\Contracts`. You
+can type-hint against the interface (`IStack`, `IQueue`, `IGraph`, …) and swap
+implementations without changing calling code. Graph algorithms such as BFS,
+DFS, cycle detection and Dijkstra accept any `IGraph`.
 
 ## Article index
 
@@ -91,7 +74,7 @@ consistent across implementations instead of inlining ad-hoc message strings.
 - [Array Stack](03-array-stack.md)
 - [Queue & Deque](04-queue.md)
 - [Graph](05-graph.md)
-- [Heap: MinHeap & MaxHeap](13-heap.md)
+- [Heap: MinHeap, MaxHeap & PriorityQueue](13-heap.md)
 - [HashTable & HashMap](14-hashtable-hashmap.md)
 - [Set](15-set.md)
 - [BinaryTree & BinarySearchTree](16-binary-search-tree.md)
@@ -106,6 +89,19 @@ consistent across implementations instead of inlining ad-hoc message strings.
 - [Dijkstra's Algorithm](12-dijkstra.md)
 - [KMP Substring Search](17-kmp.md)
 
-Each article covers: what the thing does, how its internals actually work
-(walked through, not just linked), time/space complexity, and the sharp
-edges worth knowing about.
+## Choosing a structure at a glance
+
+| You need… | Reach for |
+|---|---|
+| An ordered sequence you can share safely and transform functionally | `SingleLinkedList` / `DoublyLinkedList` |
+| A rotating, round-robin sequence | `CircularLinkedList` |
+| Last-in, first-out processing (undo, backtracking, parsing) | `ArrayStack` |
+| First-in, first-out processing (jobs, buffers, BFS) | `Queue` |
+| Insertion and removal at both ends | `Deque` |
+| Always taking the smallest / largest / highest-priority item | `MinHeap`, `MaxHeap`, `PriorityQueue` |
+| Fast lookup by key | `HashMap` |
+| Fast "have I seen this value?" checks | `HashTable` |
+| Unique values with union / intersection / difference | `Set` |
+| Sorted data with range, floor/ceiling, and k-th queries | `BinarySearchTree` |
+| Hierarchical or shape-based data (levels, completeness) | `BinaryTree` |
+| Relationships between entities (networks, dependencies, maps) | `Graph` |

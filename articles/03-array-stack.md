@@ -1,84 +1,75 @@
-# ArrayStack: a mutable, array-backed LIFO stack
+# ArrayStack
 
-`Zack\PhpDsAlgo\DataStructure\Stack\ArrayStack` is deliberately the odd one
-out next to the linked lists: instead of the persistent/immutable pattern,
-it's a plain mutable object wrapping a PHP array, because that's the
-conventional shape a stack API is expected to have (`push()` returns `$this`
-for chaining, not a new stack). It implements `IStack` and
-`IteratorAggregate`.
+**Namespace:** `Zack\PhpDsAlgo\DataStructure\Stack`
+**Class:** `ArrayStack`
+**Contract:** `Zack\PhpDsAlgo\Contracts\IStack`
 
-## Internal representation
+## What it is
 
-```php
-public function __construct(private array $items = [])
-{
-    $this->items = array_values($items);
-}
-```
+A **stack** is a Last-In, First-Out (LIFO) collection. You add items to the
+**top** and remove them from the top, so the most recently added item always
+comes out first. Think of a stack of plates.
 
-`$items` is a normal zero-indexed PHP array. The **end** of the array
-(`$items[count($items) - 1]`) is the **top** of the stack — i.e. `push`
-appends, `pop` pops from the end, both O(1) amortized PHP array operations.
-`array_values()` in the constructor strips any non-sequential keys a caller
-might pass in, guaranteeing the internal array is always a clean list.
-
-## Construction
-
-Four static factories, all funneling through the constructor:
-
-- `ArrayStack::empty()`
-- `ArrayStack::of(1, 2, 3)` — variadic
-- `ArrayStack::fromArray([1, 2, 3])`
-- `ArrayStack::fromIterable($iterable)` — handles both arrays (fast path)
-  and any other `iterable` (via `iterator_to_array($values, false)`, which
-  discards keys so the result stays a clean list)
-
-## Core operations
+`ArrayStack` stores its items in a PHP array. The end of the array is the top
+of the stack, so `push` and `pop` are both constant-time. It is **mutable**,
+and `push()` returns the stack itself, so calls can be chained.
 
 ```php
-public function push(mixed $value): static
-{
-    $this->items[] = $value;
-    return $this;
-}
+use Zack\PhpDsAlgo\DataStructure\Stack\ArrayStack;
 
-public function pop(): mixed
-{
-    if (empty($this->items)) {
-        throw new InvalidArgumentException("The stack is already empty");
-    }
-    return array_pop($this->items);
-}
+$stack = ArrayStack::empty()->push(1)->push(2)->push(3);
+
+$stack->peek(); // 3
+$stack->pop();  // 3
+$stack->pop();  // 2
+$stack->count(); // 1
 ```
 
-`push()` returning `static` (i.e. `$this`) enables fluent chaining:
-`ArrayStack::empty()->push(1)->push(2)->push(3)`. `pop()` and `peek()` both
-throw `InvalidArgumentException` on empty rather than returning `null` — the
-caller is expected to check `isEmpty()` first, or catch. `peek()` reads the
-last element without removing it; `bottom()` reads `$items[0]` — the
-oldest-pushed element still present.
-
-`isEmpty()`, `contains($value)` (strict `in_array` with `true` for the third
-argument, so type-safe equality), `clear()` (resets to `[]`, returns
-`$this`), `toArray()` (bottom-to-top order, i.e. the raw internal array),
-and `count()` round out the surface.
-
-## Iteration order is reversed on purpose
+## Creating a stack
 
 ```php
-public function getIterator(): Traversable
-{
-    yield from array_reverse($this->items);
-}
+ArrayStack::empty();
+ArrayStack::of(1, 2, 3);          // variadic
+ArrayStack::fromArray([1, 2, 3]);
+ArrayStack::fromIterable($iterable);
+new ArrayStack([1, 2, 3]);
 ```
 
-`foreach ($stack as $item)` yields **top-to-bottom** — the most naturally
-useful order for a stack (you almost always want to inspect "what's next to
-pop" first). This is the opposite order from `toArray()`, which returns
-bottom-to-top (the raw storage order) — worth remembering, since the two
-don't agree.
+The last value you pass ends up on top. Input keys are normalized, so the
+stack always stores a clean, zero-indexed list.
 
-## Complexity summary
+## API
+
+```php
+$stack->push($value);    // add to top, returns $this
+$stack->pop();           // remove and return the top
+$stack->peek();          // read the top without removing it
+$stack->bottom();        // read the oldest item still in the stack
+$stack->isEmpty();
+$stack->count();         // also works with count($stack)
+$stack->contains($value); // strict (===) comparison
+$stack->clear();         // returns $this
+$stack->toArray();       // bottom → top
+```
+
+`pop()` and `peek()` throw `InvalidArgumentException` when the stack is
+empty. Check `isEmpty()` first if the stack might be empty.
+
+### Iteration order
+
+`foreach` yields items **top to bottom**, the order they would be popped in:
+
+```php
+$stack = ArrayStack::of('a', 'b', 'c');
+
+foreach ($stack as $item) {
+    echo $item; // c, b, a
+}
+
+$stack->toArray(); // ['a', 'b', 'c'] (storage order, bottom → top)
+```
+
+## Complexity
 
 | Operation | Time |
 |---|---|
@@ -86,17 +77,28 @@ don't agree.
 | `pop` | O(1) |
 | `peek` / `bottom` | O(1) |
 | `isEmpty` / `count` | O(1) |
-| `contains` | O(n) |
 | `clear` | O(1) |
-| `toArray` | O(1) (returns internal array directly, no copy loop) |
-| iteration (`foreach`) | O(n), reversed via `array_reverse` up front |
+| `toArray` | O(1) |
+| `contains` | O(n) |
+| `foreach` | O(n) |
 
-## Why mutable here but immutable for linked lists?
+Space: O(n).
 
-Both are valid, documented choices in this codebase rather than an
-inconsistency — see [`00-overview.md`](00-overview.md) and
-[`01-single-linked-list.md`](01-single-linked-list.md). Stacks/queues follow
-the conventional mutable-container API most PHP consumers expect
-(`push`/`pop` changing the object they're called on); linked lists follow
-the persistent-data-structure pattern instead. `Queue` (next article) makes
-the same mutable choice for the same reason.
+## When to use it
+
+- **Undo/redo:** push each action, and pop to revert it.
+- **Backtracking:** maze solving, puzzle solvers, and iterative depth-first
+  search.
+- **Parsing:** matching brackets, evaluating expressions, converting infix
+  to postfix.
+- **Replacing recursion** with an explicit stack for deep structures.
+- **Reversing** a sequence.
+
+## When to choose something else
+
+- **Processing items in arrival order:** use `Queue` (FIFO).
+- **Adding and removing at both ends:** use `Deque`.
+- **Always taking the smallest or highest-priority item:** use `MinHeap`,
+  `MaxHeap` or `PriorityQueue`.
+- **Keeping every past version:** use the persistent `SingleLinkedList`, where
+  prepending and removing the head are also O(1).
