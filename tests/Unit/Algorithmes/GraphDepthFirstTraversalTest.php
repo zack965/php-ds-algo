@@ -3,7 +3,7 @@
 namespace Tests\Unit\Algorithmes;
 
 use PHPUnit\Framework\TestCase;
-use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphDepthFirstTraversal;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 use Zack\PhpDsAlgo\Exception\NotFoundException;
 

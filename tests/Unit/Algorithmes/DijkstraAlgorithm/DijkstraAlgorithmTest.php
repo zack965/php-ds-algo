@@ -4,7 +4,7 @@ namespace Tests\Unit\Algorithmes\DijkstraAlgorithm;
 
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
+use Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 
 class DijkstraAlgorithmTest extends TestCase

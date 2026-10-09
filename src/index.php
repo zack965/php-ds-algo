@@ -1,15 +1,7 @@
 <?php
 
-use Zack\PhpDsAlgo\Algorithmes\ArraySearchAlogorthme;
 use Zack\PhpDsAlgo\Algorithmes\ArraySortAlgorythmes;
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
-use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
-use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
-use Zack\PhpDsAlgo\Algorithmes\Strings\KMP;
-use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
-use Zack\PhpDsAlgo\DataStructure\HashTabe\HashTable;
-use Zack\PhpDsAlgo\DataStructure\Heap\MaxHeap;
-use Zack\PhpDsAlgo\DataStructure\Heap\MinHeap;
+
 
 require_once "vendor/autoload.php";
 

@@ -3,7 +3,7 @@
 namespace Tests\Unit\Algorithmes\DijkstraAlgorithm;
 
 use PHPUnit\Framework\TestCase;
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithmDistance;
+use Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm\DijkstraAlgorithmDistance;
 
 class DijkstraAlgorithmDistanceTest extends TestCase
 {
