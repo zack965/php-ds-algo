@@ -5,6 +5,31 @@ release by release, newest first. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort` (`src/Algorithmes/Graph/TopologicalSort.php`) —
+  `run(IGraph $graph): array` returns every node in an order where each edge `A → B` places `A`
+  before `B`. DFS finish-order method, implemented iteratively with an explicit stack of
+  `Enter`/`Finish` tasks and a three-state `NodeState` (`Unvisited`/`InProgress`/`Done`), so deep
+  dependency chains can't overflow the call stack and cycles are detected for free (an edge into
+  an `InProgress` node is a back edge). O(V + E) time, O(V) space. Throws `RuntimeException` for
+  an undirected graph (`The graph must be directed`) or a cyclic one, self-loops included
+  (`The graph must be acyclic - (non cyclic): back edge X -> Y`). Closes the "topological sort"
+  1.0 blocker in `missing.md`. 17 tests in `tests/Unit/Algorithmes/TopologicalSortTest.php`,
+  100% method/line coverage. Documented in the README under
+  [Topological Sort — TopologicalSort](README.md#topological-sort--topologicalsort) and in the new
+  `articles/18-topological-sort.md`.
+
+### Changed
+
+- Docs: namespaces for `GraphBreadthFirstTraversal`, `GraphDepthFirstTraversal` and
+  `DijkstraAlgorithm`/`DijkstraAlgorithmDistance` corrected to `Zack\PhpDsAlgo\Algorithmes\Graph\…`
+  (and `src/Algorithmes/Graph/…`) in the README, `articles/06`, `articles/12`, `TODO.md`,
+  `PathToOnePointO.md` and `missing.md`, matching where the code actually lives after the
+  graph-folder reorganisation.
+
 ## [v0.5.0] — 2026-09-12
 
 ### Added

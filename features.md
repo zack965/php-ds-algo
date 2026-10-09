@@ -377,7 +377,7 @@ elements with `InvalidArgumentException`) — both 100% method/line covered.
 - Dijkstra's shortest path
 - Bellman-Ford
 - A* search
-- Topological sort
+- Topological sort — **done**, `Algorithmes\Graph\TopologicalSort`
 - Kruskal's / Prim's minimum spanning tree
 - Cycle detection (directed and undirected)
 

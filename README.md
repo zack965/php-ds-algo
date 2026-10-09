@@ -30,6 +30,7 @@ A PHP library implementing classic data structures and algorithms from scratch, 
   - [Edit Distance — LevenshteinDistance](#edit-distance--levenshteindistance)
   - [Graph Traversal — BFS / DFS](#graph-traversal--bfs--dfs)
   - [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm)
+  - [Topological Sort — TopologicalSort](#topological-sort--topologicalsort)
   - [General Array Helpers — GeneralArrayAlgorithms](#general-array-helpers--generalarrayalgorithms)
   - [Low-level Helpers — AlgorythmesGlobalHelpers](#low-level-helpers--algorythmesglobalhelpers)
 - [Exceptions & Error Handling](#exceptions--error-handling)
@@ -408,8 +409,8 @@ Rows without a `weight` key produce an unweighted edge (`weight` defaults to `nu
 `Graph` doesn't have `bfs()`/`dfs()` methods itself — traversal is done via separate algorithm classes (see [Graph Traversal](#graph-traversal--bfs--dfs) below):
 
 ```php
-use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
-use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphBreadthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphDepthFirstTraversal;
 
 GraphBreadthFirstTraversal::traverse($graph, 'A'); // ['A', 'B', 'C']
 GraphDepthFirstTraversal::traverse($graph, 'A');   // ['A', 'C', 'B']
@@ -1077,11 +1078,11 @@ $result['WordsData'];           // ['word1', 'word2', 'Word1Spaced', 'Word2Space
 
 ### Graph Traversal — BFS / DFS
 
-`Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal` / `GraphDepthFirstTraversal` — each has one static `traverse(IGraph $graph, int|string $start): array` method, returning visited nodes in traversal order. Both throw `NotFoundException` if `$start` isn't a node in the graph.
+`Zack\PhpDsAlgo\Algorithmes\Graph\GraphBreadthFirstTraversal` / `GraphDepthFirstTraversal` — each has one static `traverse(IGraph $graph, int|string $start): array` method, returning visited nodes in traversal order. Both throw `NotFoundException` if `$start` isn't a node in the graph.
 
 ```php
-use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
-use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphBreadthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphDepthFirstTraversal;
 
 GraphBreadthFirstTraversal::traverse($graph, 'A');
 GraphDepthFirstTraversal::traverse($graph, 'A');
@@ -1089,12 +1090,32 @@ GraphDepthFirstTraversal::traverse($graph, 'A');
 
 DFS is stack-based (iterative, not recursive) — for a node with neighbors `[B, C]`, `C` is explored before `B` (last-pushed, first-popped).
 
-### Shortest Path — `DijkstraAlgorithm`
+### Topological Sort — `TopologicalSort`
 
-`Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm` — single-source shortest paths on a weighted `Graph`, using a `PriorityQueue(PriorityQueueTypeEnum::Min)` internally. Unlike every other class under `Algorithmes/`, it's **stateful** — construct one, call `calculateDistances()`, then query the result off the same instance.
+`Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort` — a valid "build order" for a directed acyclic graph (DAG): every edge `A → B` puts `A` before `B` in the result. One static method, `run(IGraph $graph): array`, returning a `list<int|string>` of every node in the graph (isolated nodes and disconnected components included). The graph itself is never modified.
 
 ```php
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
+use Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort;
+use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
+
+$graph = new Graph();
+$graph->addNode('A')->addNode('B')->addNode('C');
+$graph->addEdge('A', 'B');
+$graph->addEdge('B', 'C');
+
+TopologicalSort::run($graph); // ['A', 'B', 'C']
+```
+
+A DAG usually has many valid orders — rely on "every edge points forward", not on the exact sequence when more than one order is possible. Throws `RuntimeException` if the graph is undirected (`The graph must be directed`) or contains a cycle, self-loops included (`The graph must be acyclic - (non cyclic): back edge X -> Y`, naming the edge that closed the loop) — so you don't need to run `GraphDirectedCycleDetector` first.
+
+It's the DFS finish-order method (not Kahn's in-degree method): an iterative DFS with an explicit stack of `Enter`/`Finish` tasks and a three-state `NodeState` per node (`Unvisited`/`InProgress`/`Done`), reversing the finish order at the end. Being iterative, a very long dependency chain can't overflow the call stack. O(V + E) time, O(V) space. See [`articles/18-topological-sort.md`](articles/18-topological-sort.md) for the full walkthrough.
+
+### Shortest Path — `DijkstraAlgorithm`
+
+`Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm\DijkstraAlgorithm` — single-source shortest paths on a weighted `Graph`, using a `PriorityQueue(PriorityQueueTypeEnum::Min)` internally. Unlike every other class under `Algorithmes/`, it's **stateful** — construct one, call `calculateDistances()`, then query the result off the same instance.
+
+```php
+use Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm\DijkstraAlgorithm;
 
 $dijkstra = new DijkstraAlgorithm();
 $dijkstra->calculateDistances($graph, 'A');   // populates internal per-node distance/predecessor state
@@ -1157,6 +1178,7 @@ AlgorythmesGlobalHelpers::swapValuesOfArray($nums, 0, 2); // by reference; $nums
 | `OutOfBoundsException` (SPL) | `Set::get(int $index)` for an index outside the set's current range | See [Indexed access](#set) above |
 | `RuntimeException` (SPL) | `MinHeap`/`MaxHeap` (`AbstractBinaryHeap::peek()`/`extract()`) on an empty heap; `PriorityQueue::peek()`/`extract()` on an empty queue (delegates straight to its internal `MaxHeap`/`MinHeap`, whichever `PriorityQueueTypeEnum` was passed to the constructor) | The only structures in this library that throw `RuntimeException` for an empty-container error instead of `InvalidArgumentException` — worth remembering if you're catching by exception type |
 | `RuntimeException` (SPL) | `DijkstraAlgorithm::calculateDistances()` (unknown source node, or a non-numeric/unweighted edge weight hit mid-relaxation); `DijkstraAlgorithm::findShortestPath()` (unknown target node) | See [Shortest Path — DijkstraAlgorithm](#shortest-path--dijkstraalgorithm) |
+| `RuntimeException` (SPL) | `TopologicalSort::run()` on an undirected graph, or on a graph containing a cycle (self-loops included) | See [Topological Sort — TopologicalSort](#topological-sort--topologicalsort) |
 | `Zack\PhpDsAlgo\Exception\NotFoundException` | `GraphBreadthFirstTraversal::traverse()`, `GraphDepthFirstTraversal::traverse()` | Built via `NotFoundException::nodeNotFound($value)` |
 | `Zack\PhpDsAlgo\Exception\DuplicateNodeException` | `Graph::addNode()` on a duplicate | Built via `DuplicateNodeException::nodeDuplicate($value)` |
 | `Zack\PhpDsAlgo\Exception\EdgeNotFoundException` | `Graph::getEdge()` on a missing edge | Built via `EdgeNotFoundException::edgeNotFound($source, $destination)` |
@@ -1211,7 +1233,8 @@ There is no other linter or static analysis tool configured — `php -l path/to/
 ```
 src/
 ├── Algorithmes/            # static utility classes operating on plain arrays
-│   ├── DijkstraAlgorithm/   # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
+│   ├── Graph/               # GraphBreadthFirstTraversal, GraphDepthFirstTraversal, TopologicalSort (all static)
+│   │   └── DijkstraAlgorithm/  # DijkstraAlgorithm, DijkstraAlgorithmDistance — stateful, not static, see above
 │   └── Strings/              # KMP — see String Matching section above
 ├── Constants/               # ErrorMessages
 ├── Contracts/                # interfaces: ILinkedList, IDoublyLinkedList, IStack, IQueue, IDeque, IGraph, IHeap, IPriorityQueue, IHashTable, IHashMap, ISet, IHashSet
@@ -1237,7 +1260,7 @@ Note the intentional misspellings (`Algorythmes`, `Alogorthme`) used consistentl
 
 ## Roadmap
 
-See `TODO.md` and `features.md` for the current backlog. Graph algorithms (topological sort, undirected cycle detection, connected components, Bellman-Ford, Kruskal's/Prim's MST, A*) and dynamic programming beyond edit distance are the main remaining category gaps — tree (`BinaryTree`/`BinarySearchTree`), deque, heap sort, bucket sort, and string matching (KMP) are now done, see [BinaryTree & BinarySearchTree](#binarytree--binarysearchtree), [Deque](#deque), [Sorting](#sorting--arraysortalgorythmes), and [String Matching](#string-matching--kmp) above. Further out: AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, a plain unique-value `Set`, and a hashed `HashSet` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), [Set](#set), and [HashSet](#hashset) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog), skip list, segment/Fenwick trees.
+See `TODO.md` and `features.md` for the current backlog. Graph algorithms (undirected cycle detection, connected components, Bellman-Ford, Kruskal's/Prim's MST, A*) and dynamic programming beyond edit distance are the main remaining category gaps — tree (`BinaryTree`/`BinarySearchTree`), deque, heap sort, bucket sort, and string matching (KMP) are now done, see [BinaryTree & BinarySearchTree](#binarytree--binarysearchtree), [Deque](#deque), [Sorting](#sorting--arraysortalgorythmes), and [String Matching](#string-matching--kmp) above. Further out: AVL/Red-Black trees, trie, disjoint set / union-find (a hash table, hash map, a plain unique-value `Set`, and a hashed `HashSet` now exist, see [HashTable](#hashtable), [HashMap](#hashmap), [Set](#set), and [HashSet](#hashset) — note disjoint set/union-find is a different structure with its own find/union-by-rank shape, still on the backlog), skip list, segment/Fenwick trees.
 
 ## License
 

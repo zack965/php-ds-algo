@@ -20,7 +20,7 @@ and covers:
 | Area | Namespace | Contents |
 |---|---|---|
 | Data structures | `Zack\PhpDsAlgo\DataStructure\*` | Linked lists, stack, queue/deque, graph, heaps & priority queue, hash table/map, set, binary trees |
-| Algorithms | `Zack\PhpDsAlgo\Algorithmes\*` | Sorting, searching, sliding window, graph traversal, cycle detection, Dijkstra, Levenshtein distance, KMP |
+| Algorithms | `Zack\PhpDsAlgo\Algorithmes\*` | Sorting, searching, sliding window, graph traversal, cycle detection, topological sort, Dijkstra, Levenshtein distance, KMP |
 | Contracts | `Zack\PhpDsAlgo\Contracts\*` | Interfaces (`ILinkedList`, `IStack`, `IQueue`, `IGraph`, `IHeap`, `IHashMap`, `ISet`, …) |
 | Errors | `Zack\PhpDsAlgo\Constants\ErrorMessages`, `Zack\PhpDsAlgo\Exception\*` | Shared error messages and dedicated exception classes |
 
@@ -64,7 +64,7 @@ set-algebra methods (`union`, `intersection`, `difference`) that return a new
 Each structure implements an interface from `Zack\PhpDsAlgo\Contracts`. You
 can type-hint against the interface (`IStack`, `IQueue`, `IGraph`, …) and swap
 implementations without changing calling code. Graph algorithms such as BFS,
-DFS, cycle detection and Dijkstra accept any `IGraph`.
+DFS, cycle detection, topological sort and Dijkstra accept any `IGraph`.
 
 ## Article index
 
@@ -88,6 +88,7 @@ DFS, cycle detection and Dijkstra accept any `IGraph`.
 - [Levenshtein (Edit) Distance](11-levenshtein-distance.md)
 - [Dijkstra's Algorithm](12-dijkstra.md)
 - [KMP Substring Search](17-kmp.md)
+- [Topological Sort](18-topological-sort.md)
 
 ## Choosing a structure at a glance
 

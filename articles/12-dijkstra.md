@@ -1,6 +1,6 @@
 # Dijkstra's Algorithm
 
-**Namespace:** `Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm`
+**Namespace:** `Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm`
 **Classes:** `DijkstraAlgorithm`, `DijkstraAlgorithmDistance`
 
 ## What it is
@@ -14,7 +14,7 @@ uses a min-[`PriorityQueue`](13-heap.md) to always expand the closest
 unfinished node next.
 
 ```php
-use Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm\DijkstraAlgorithm;
+use Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm\DijkstraAlgorithm;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 
 $graph = new Graph();

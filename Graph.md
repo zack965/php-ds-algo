@@ -147,7 +147,7 @@ interface IGraph
 
 ## Topological Algorithms
 
-- Topological Sort
+- Topological Sort — **implemented**: `Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort::run()` (DFS finish-order, O(V + E), throws `RuntimeException` on undirected or cyclic graphs)
 
 ## Connectivity
 

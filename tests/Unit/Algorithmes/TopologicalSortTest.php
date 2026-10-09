@@ -80,6 +80,19 @@ class TopologicalSortTest extends TestCase
         $this->assertValidOrder($order, $edges);
     }
 
+    public function testNodePushedTwiceBeforeBeingPoppedIsOnlyRecordedOnce(): void
+    {
+        // A pushes both B and C. Exploring C pushes B again while B's first
+        // entry is still on the stack, so B is stacked twice. The second
+        // entry must be skipped, not treated as a cycle or recorded again.
+        $edges = [['A', 'B'], ['A', 'C'], ['C', 'B']];
+        $graph = $this->buildGraph(['A', 'B', 'C'], $edges);
+
+        $order = TopologicalSort::run($graph);
+
+        $this->assertSame(['A', 'C', 'B'], $order);
+    }
+
     public function testDisconnectedNodesAreAllIncluded(): void
     {
         $edges = [['A', 'B'], ['C', 'D']];

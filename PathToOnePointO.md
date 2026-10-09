@@ -101,9 +101,9 @@ re-testing already-covered methods after it was deleted._
   the last two closing the M2 heap-sort gap and rejecting non-`int|float`
   input respectively, see M2 below), searching
   (binary/exponential/interpolation/jump/linear/ternary/fibonacci), fixed-size
-  sliding window, BFS/DFS, directed-graph cycle detection, Levenshtein
+  sliding window, BFS/DFS, topological sort, directed-graph cycle detection, Levenshtein
   distance, Dijkstra's shortest path (`DijkstraAlgorithm`/
-  `DijkstraAlgorithmDistance`, `src/Algorithmes/DijkstraAlgorithm/`, stateful
+  `DijkstraAlgorithmDistance`, `src/Algorithmes/Graph/DijkstraAlgorithm/`, stateful
   — the one exception to the static-utility shape the rest of `Algorithmes/`
   uses — built on `PriorityQueue(PriorityQueueTypeEnum::Min)`, see M2 below),
   `GeneralArrayAlgorithms` (`hasDuplicates`/`contains`/`remove`/`equals` —
@@ -154,7 +154,7 @@ Concretely:
    no heap, no hash table, no shortest-path algorithm, no DP beyond one
    edit-distance example, no string-matching algorithm. Heap, shortest-path
    (Dijkstra), hash table, tree, deque, heap sort, and string-matching are
-   now closed (see M2 below); topological sort and DP remain gaps. Those are
+   topological sort are now closed (see M2 below); DP remains the gap. Those are
    the structures/algorithms anyone evaluating a "data structures and
    algorithms" library checks for first — see the curated list in M2 below.
 6. **A documented BC/versioning policy** (`CHANGELOG.md` + a stated semver
@@ -330,7 +330,7 @@ item is now done (see below), the rest of this list is still open:
       exist but couldn't answer "shortest path," one of the two questions
       people reach for a graph library to answer. **Done** —
       `DijkstraAlgorithm`/`DijkstraAlgorithmDistance`
-      (`src/Algorithmes/DijkstraAlgorithm/`), built on
+      (`src/Algorithmes/Graph/DijkstraAlgorithm/`), built on
       `PriorityQueue(PriorityQueueTypeEnum::Min)` (its second real use after
       the heap itself), stateful unlike the rest of `Algorithmes/` (construct,
       call `calculateDistances()`, then `findShortestPath()`/`display()`),
@@ -339,8 +339,14 @@ item is now done (see below), the rest of this list is still open:
       is 2/5 (40%) — `display()` and a couple of branches in
       `calculateDistances()`/`findShortestPath()` are untested; folded into
       the M1 coverage bullet above.
-- [ ] **Topological sort** on `Graph` — still open; "valid build order" is
-      the other question people reach for a graph library to answer.
+- [x] **Topological sort** on `Graph` — "valid build order" is the other
+      question people reach for a graph library to answer. **Done** —
+      `Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort::run()`, DFS
+      finish-order with an explicit stack (iterative, so deep chains can't
+      overflow) and a three-state `NodeState`, throwing `RuntimeException`
+      for undirected or cyclic graphs. 100% method/line coverage (17 tests).
+      Documented in the README and
+      [`articles/18-topological-sort.md`](articles/18-topological-sort.md).
 - [ ] **One DP algorithm beyond edit distance** — 0/1 knapsack or LCS,
       whichever is smaller to implement well; proves DP is a supported
       category, not a one-off next to `LevenshteinDistance`.
@@ -407,8 +413,7 @@ them — they remain valid, ranked backlog for *after* 1.0 ships:
   see above).
 - Dynamic/variable-size sliding window, monotonic-deque min/max window.
 - Undirected-graph cycle detection, Bellman-Ford, Kruskal's/Prim's MST, A*
-  — topological sort stays in M2 (still open); Dijkstra was in M2 and is
-  now done, see above.
+  — topological sort and Dijkstra were in M2 and are now done, see above.
 - Trie, Union-Find/Disjoint Set, AVL tree, Red-Black tree, Skip List,
   Segment Tree/Fenwick Tree — Hash Table was moved into M2 and is now done,
   see above. (A plain unique-value `Set` and its hashed sibling `HashSet`

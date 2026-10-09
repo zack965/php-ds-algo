@@ -17,8 +17,8 @@ Both classes are static utilities. They accept any `IGraph` implementation
 and return the visited nodes in order.
 
 ```php
-use Zack\PhpDsAlgo\Algorithmes\GraphBreadthFirstTraversal;
-use Zack\PhpDsAlgo\Algorithmes\GraphDepthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphBreadthFirstTraversal;
+use Zack\PhpDsAlgo\Algorithmes\Graph\GraphDepthFirstTraversal;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;
 
 $graph = new Graph();

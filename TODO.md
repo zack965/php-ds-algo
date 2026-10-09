@@ -66,13 +66,16 @@ structures).
 - Sliding window: fixed-size
 - Graph traversal: BFS, DFS
 - Graph cycle detection: directed (`GraphDirectedCycleDetector`)
+- Graph topological sort (`Zack\PhpDsAlgo\Algorithmes\Graph\TopologicalSort`) — iterative DFS finish-order
+  with a three-state `NodeState`; throws `RuntimeException` for undirected or cyclic graphs. 100%
+  method/line coverage (17 tests). See `articles/18-topological-sort.md`.
 - `GeneralArrayAlgorithms`: `hasDuplicates`, `contains`, `remove`, `equals` (the last is a
   public NaN-aware equality helper — strict `===`, except two `NAN` floats compare equal to
   each other — shared by `contains()`/`remove()` internally and called directly by
   `Set::indexOf()`/`HashSet::update()`; without it a stored `NAN` could be found by
   `contains()`/`hasValue()` yet never actually matched and removed by `remove()`/`delete()`)
 - `LevenshteinDistance` (edit distance, Wagner-Fischer DP, with reconstructed optimal path)
-- `DijkstraAlgorithm` / `DijkstraAlgorithmDistance` (`src/Algorithmes/DijkstraAlgorithm/`) — single-source
+- `DijkstraAlgorithm` / `DijkstraAlgorithmDistance` (`src/Algorithmes/Graph/DijkstraAlgorithm/`) — single-source
   shortest paths, backed by `PriorityQueue(PriorityQueueTypeEnum::Min)`. Stateful (construct, call
   `calculateDistances()`, then `findShortestPath()`/`display()`), unlike the rest of `Algorithmes/`.
   Method coverage is currently 2/5 — `display()` and a couple of branches in `calculateDistances()`/
@@ -194,9 +197,9 @@ structures).
    predicate), monotonic-deque-based window max/min.
 5. **Graph algorithms beyond BFS/DFS** (build on existing `Graph`): cycle
    detection for undirected graphs (directed is done — see
-   `GraphDirectedCycleDetector`), topological sort, Bellman-Ford,
-   Kruskal's / Prim's MST, A*. (Dijkstra is done — see `DijkstraAlgorithm`
-   above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
+   `GraphDirectedCycleDetector`), Bellman-Ford,
+   Kruskal's / Prim's MST, A*. (Topological sort and Dijkstra are done — see
+   `TopologicalSort` and `DijkstraAlgorithm` above, built on `PriorityQueue(PriorityQueueTypeEnum::Min)`.)
 6. **Trie**, **Union-Find / Disjoint Set**, **AVL tree**, **Red-Black tree**,
     **Skip List**, **Segment Tree** / **Fenwick Tree**. (Hash Table and Hash
     Map are done — see `HashTable`/`HashMap` above. A plain unique-value
