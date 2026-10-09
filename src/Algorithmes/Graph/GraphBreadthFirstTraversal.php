@@ -1,7 +1,8 @@
 <?php
 
+namespace Zack\PhpDsAlgo\Algorithmes\Graph;
 
-namespace Zack\PhpDsAlgo\Algorithmes;
+
 
 use Zack\PhpDsAlgo\Contracts\IGraph;
 use Zack\PhpDsAlgo\DataStructure\Graph\Graph;

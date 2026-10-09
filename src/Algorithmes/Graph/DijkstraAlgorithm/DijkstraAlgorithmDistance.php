@@ -1,7 +1,8 @@
 <?php
 
+namespace Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm;
 
-namespace Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm;
+
 
 class DijkstraAlgorithmDistance
 {

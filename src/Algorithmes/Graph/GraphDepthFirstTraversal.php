@@ -1,6 +1,7 @@
 <?php
 
-namespace Zack\PhpDsAlgo\Algorithmes;
+namespace Zack\PhpDsAlgo\Algorithmes\Graph;
+
 
 use Zack\PhpDsAlgo\Contracts\IGraph;
 use Zack\PhpDsAlgo\Exception\NotFoundException;

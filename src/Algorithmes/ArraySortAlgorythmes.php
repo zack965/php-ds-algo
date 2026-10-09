@@ -116,8 +116,7 @@ class ArraySortAlgorythmes
             $sorted[] = static::insertionSort($bucket);
         }
 
-        //Merge all buckets
-        //Sorted result
+        //Merge all buckets Sorted result
 
         return array_merge(...$sorted);
     }

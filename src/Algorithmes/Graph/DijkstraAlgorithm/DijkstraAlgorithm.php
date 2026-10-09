@@ -1,6 +1,7 @@
 <?php
 
-namespace Zack\PhpDsAlgo\Algorithmes\DijkstraAlgorithm;
+namespace Zack\PhpDsAlgo\Algorithmes\Graph\DijkstraAlgorithm;
+
 
 use RuntimeException;
 use Zack\PhpDsAlgo\Contracts\IGraph;

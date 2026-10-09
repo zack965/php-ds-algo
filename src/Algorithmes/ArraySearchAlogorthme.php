@@ -71,7 +71,7 @@ class ArraySearchAlogorthme
     {
         if ($low <= $high && $target >= $data[$low] && $target <= $data[$high]) {
             // Estimate the position using the interpolation formula
-            $pos = $low + (($target - $data[$low]) * ($high - $low)) / ($data[$high] - $data[$low]);
+            $pos = (int) ($low + (($target - $data[$low]) * ($high - $low)) / ($data[$high] - $data[$low]));
 
             // Check if the estimated position is the target
             if ($data[$pos] == $target) {
